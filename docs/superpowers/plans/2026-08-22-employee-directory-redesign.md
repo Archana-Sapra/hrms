@@ -93,6 +93,7 @@ frontend/src/components/hr/employeeDirectory/
     ProfileField.tsx                        CREATE  one field, read/edit      (~90)
     EmployeeAvatar.tsx                      CREATE  extracted from monolith   (~30)
     LeaveActionDialog.tsx                   CREATE  approve/reject confirm    (~100)
+  employeeName.ts                           CREATE  employeeDisplayName only  (~8)
   useEmployeeFilters.ts                     CREATE  filter/sort derivation    (~70)
   LeaveSection.tsx                          REWRITE cards <md, table md+      (~200)
   DocumentManager.tsx                       MODIFY  tokens + mobile grid
@@ -238,8 +239,12 @@ Pure extraction plus new derivation logic, with no UI wired yet — this keeps t
 **Interfaces:**
 - Consumes: `Employee` from `@/types`; `Avatar, AvatarImage, AvatarFallback` from `@/components/ui/avatar`.
 - Produces:
-  - `EmployeeAvatar({ name: string; src?: string; className?: string })`
+  - `EmployeeAvatar({ name: string; src?: string; className?: string })` from
+    `components/EmployeeAvatar.tsx`
   - `employeeDisplayName(e: Pick<Employee,'name'|'firstName'|'lastName'>): string`
+    from `employeeName.ts` — **its own module, not EmployeeAvatar.tsx.**
+    Exporting a non-component alongside a component trips
+    `react-refresh/only-export-components` and costs a lint warning per file.
   - `useEmployeeFilters({ employees, users }): { search, setSearch, department, setDepartment, employmentType, setEmploymentType, linkState, setLinkState, activeFilterCount, clearFilters, visible, total, linkedMap }`
   - `type LinkState = 'all' | 'linked' | 'unlinked'`
 
@@ -296,7 +301,7 @@ export function EmployeeAvatar({
 ```ts
 import { useState } from 'react';
 import type { Employee, User } from '@/types';
-import { employeeDisplayName } from './components/EmployeeAvatar';
+import { employeeDisplayName } from './employeeName';
 
 export type LinkState = 'all' | 'linked' | 'unlinked';
 
@@ -405,7 +410,8 @@ Row is ~64px for a comfortable tap target. The unlink button is deliberately **a
 ```tsx
 import { ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { EmployeeAvatar, employeeDisplayName } from './EmployeeAvatar';
+import { EmployeeAvatar } from './EmployeeAvatar';
+import { employeeDisplayName } from '../employeeName';
 import type { Employee } from '@/types';
 
 export function EmployeeListItem({
@@ -1042,7 +1048,8 @@ import { useState } from 'react';
 import { ArrowLeft, Pencil, MoreVertical, Link2Off, UserX, UserCheck, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { EmployeeAvatar, employeeDisplayName } from './EmployeeAvatar';
+import { EmployeeAvatar } from './EmployeeAvatar';
+import { employeeDisplayName } from '../employeeName';
 import type { Employee } from '@/types';
 
 export function ProfileHeader({
@@ -1596,7 +1603,7 @@ import { DirectoryHeader } from './components/DirectoryHeader';
 import { DirectoryToolbar } from './components/DirectoryToolbar';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeProfile } from './components/EmployeeProfile';
-import { employeeDisplayName } from './components/EmployeeAvatar';
+import { employeeDisplayName } from './employeeName';
 import InactiveEmployees from './InactiveEmployees';
 import { EditAttendanceModal } from './AttendanceSection';
 import { Users } from 'lucide-react';
