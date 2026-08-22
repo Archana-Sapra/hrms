@@ -124,24 +124,6 @@ export const maskSensitiveData = (value: string, visibleChars: number = 4): stri
 };
 
 /**
- * Mask Aadhaar number (show only last 4 digits)
- * Format: XXXX XXXX 1234
- *
- * @param aadhaar - Aadhaar number
- * @returns Masked Aadhaar
- */
-export const maskAadhaar = (aadhaar: unknown): string => {
-  if (typeof aadhaar !== 'string') return '';
-
-  const cleaned = aadhaar.replace(/\s/g, '');
-
-  if (cleaned.length !== 12) return aadhaar; // Invalid format, return as-is
-
-  const lastFour = cleaned.slice(-4);
-  return `XXXX XXXX ${lastFour}`;
-};
-
-/**
  * Mask bank account number (show only last 4 digits)
  *
  * @param accountNumber - Bank account number
@@ -242,7 +224,6 @@ export default {
   sanitizeFilename,
   sanitizeObject,
   maskSensitiveData,
-  maskAadhaar,
   maskBankAccount,
   maskPAN,
   sanitizeEmail,

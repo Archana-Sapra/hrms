@@ -252,15 +252,6 @@ const employeeSchema = new Schema<IEmployee>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform: (_doc, ret) => {
-        // Optionally mask sensitive data in JSON responses
-        // Keep masking for Aadhaar (very sensitive 12 digit ID)
-        if (ret.aadhaarNumber) {
-          ret.aadhaarNumber = 'XXXX-XXXX-' + ret.aadhaarNumber.slice(-4);
-        }
-        // PAN is not masked - needed for salary slips and official documents
-        return ret;
-      },
     },
     toObject: { virtuals: true },
   }

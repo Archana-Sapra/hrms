@@ -93,6 +93,7 @@ frontend/src/components/hr/employeeDirectory/
     ProfileField.tsx                        CREATE  one field, read/edit      (~90)
     EmployeeAvatar.tsx                      CREATE  extracted from monolith   (~30)
     LeaveActionDialog.tsx                   CREATE  approve/reject confirm    (~100)
+  employeeName.ts                           CREATE  employeeDisplayName only  (~8)
   useEmployeeFilters.ts                     CREATE  filter/sort derivation    (~70)
   LeaveSection.tsx                          REWRITE cards <md, table md+      (~200)
   DocumentManager.tsx                       MODIFY  tokens + mobile grid
@@ -238,8 +239,12 @@ Pure extraction plus new derivation logic, with no UI wired yet — this keeps t
 **Interfaces:**
 - Consumes: `Employee` from `@/types`; `Avatar, AvatarImage, AvatarFallback` from `@/components/ui/avatar`.
 - Produces:
-  - `EmployeeAvatar({ name: string; src?: string; className?: string })`
+  - `EmployeeAvatar({ name: string; src?: string; className?: string })` from
+    `components/EmployeeAvatar.tsx`
   - `employeeDisplayName(e: Pick<Employee,'name'|'firstName'|'lastName'>): string`
+    from `employeeName.ts` — **its own module, not EmployeeAvatar.tsx.**
+    Exporting a non-component alongside a component trips
+    `react-refresh/only-export-components` and costs a lint warning per file.
   - `useEmployeeFilters({ employees, users }): { search, setSearch, department, setDepartment, employmentType, setEmploymentType, linkState, setLinkState, activeFilterCount, clearFilters, visible, total, linkedMap }`
   - `type LinkState = 'all' | 'linked' | 'unlinked'`
 
@@ -296,7 +301,7 @@ export function EmployeeAvatar({
 ```ts
 import { useState } from 'react';
 import type { Employee, User } from '@/types';
-import { employeeDisplayName } from './components/EmployeeAvatar';
+import { employeeDisplayName } from './employeeName';
 
 export type LinkState = 'all' | 'linked' | 'unlinked';
 
@@ -405,7 +410,8 @@ Row is ~64px for a comfortable tap target. The unlink button is deliberately **a
 ```tsx
 import { ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { EmployeeAvatar, employeeDisplayName } from './EmployeeAvatar';
+import { EmployeeAvatar } from './EmployeeAvatar';
+import { employeeDisplayName } from '../employeeName';
 import type { Employee } from '@/types';
 
 export function EmployeeListItem({
@@ -684,14 +690,14 @@ export function DirectoryToolbar({
                         onChange={(e) => filters.setSearch(e.target.value)}
                         placeholder="Search employees…"
                         aria-label="Search employees"
-                        className="pl-9 pr-9"
+                        className="pl-9 pr-11"
                     />
                     {filters.search && (
                         <button
                             type="button"
                             onClick={() => filters.setSearch('')}
                             aria-label="Clear search"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             <X className="size-4" />
                         </button>
@@ -701,7 +707,7 @@ export function DirectoryToolbar({
                 <Button
                     variant="outline"
                     size="icon"
-                    className="relative lg:hidden"
+                    className="relative size-11 shrink-0 lg:size-9 lg:hidden"
                     onClick={() => setSheetOpen(true)}
                     aria-label={`Filters${filters.activeFilterCount ? `, ${filters.activeFilterCount} active` : ''}`}
                 >
@@ -855,13 +861,30 @@ import { sanitizeText } from '@/utils/sanitization';
 
 export type ProfileFieldType = 'text' | 'email' | 'tel' | 'date' | 'select';
 
+// Employee.address is `string | { street?, city?, state?, pincode? }`. The
+// legacy object form must never reach an <input>: String(obj) yields
+// "[object Object]", which the save path would then persist over the real
+// address. Flatten it to a comma-joined line so it round-trips as text.
+function toEditableString(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+        const parts = Object.values(value as Record<string, unknown>)
+            .filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+        return parts.join(', ');
+    }
+    return String(value);
+}
+
 function formatDisplay(value: unknown, type: ProfileFieldType): string {
     if (value === null || value === undefined || value === '') return '—';
     if (type === 'date') {
         const d = new Date(String(value));
         return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
     }
-    if (typeof value === 'object') return '—';
+    if (typeof value === 'object') {
+        const flattened = toEditableString(value);
+        return flattened ? sanitizeText(flattened) : '—';
+    }
     return sanitizeText(String(value));
 }
 
@@ -897,7 +920,7 @@ export function ProfileField({
         );
     }
 
-    const stringValue = type === 'date' ? toDateInputValue(value) : String(value ?? '');
+    const stringValue = type === 'date' ? toDateInputValue(value) : toEditableString(value);
 
     return (
         <div className="py-1.5">
@@ -1042,7 +1065,8 @@ import { useState } from 'react';
 import { ArrowLeft, Pencil, MoreVertical, Link2Off, UserX, UserCheck, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { EmployeeAvatar, employeeDisplayName } from './EmployeeAvatar';
+import { EmployeeAvatar } from './EmployeeAvatar';
+import { employeeDisplayName } from '../employeeName';
 import type { Employee } from '@/types';
 
 export function ProfileHeader({
@@ -1232,7 +1256,12 @@ export function LeaveActionDialog({
 
     return (
         <Dialog open onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent
+                className="sm:max-w-md"
+                onEscapeKeyDown={(e) => { if (isPending) e.preventDefault(); }}
+                onPointerDownOutside={(e) => { if (isPending) e.preventDefault(); }}
+                onInteractOutside={(e) => { if (isPending) e.preventDefault(); }}
+            >
                 <DialogHeader>
                     <DialogTitle>{approving ? 'Approve leave request?' : 'Reject leave request?'}</DialogTitle>
                     <DialogDescription>
@@ -1360,10 +1389,14 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
                             <p className="mt-2 text-sm text-muted-foreground">{leave.reason}</p>
                         )}
                         {leave.status === 'pending' && (
+                            // h-11 (44px), not size="sm"'s h-8: these are the
+                            // primary touch actions on a phone. The desktop
+                            // table below keeps size="sm" — it is pointer-only
+                            // from md up, where 44px rows would bloat the table.
                             <div className="mt-3 flex gap-2">
                                 <Button
                                     size="sm"
-                                    className="flex-1"
+                                    className="h-11 flex-1"
                                     onClick={() => setPendingAction({ leave, action: 'approved' })}
                                 >
                                     Approve
@@ -1371,7 +1404,7 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1"
+                                    className="h-11 flex-1"
                                     onClick={() => setPendingAction({ leave, action: 'rejected' })}
                                 >
                                     Reject
@@ -1424,7 +1457,12 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
             <LeaveActionDialog
                 leave={pendingAction?.leave ?? null}
                 action={pendingAction?.action ?? null}
-                onOpenChange={(open) => { if (!open) setPendingAction(null); }}
+                onOpenChange={(open) => {
+                    // Ignore dismissal (X, Escape, overlay click) while the
+                    // mutation is in flight — the request completes regardless,
+                    // and closing early strips the pending feedback.
+                    if (!open && !updateStatus.isPending) setPendingAction(null);
+                }}
                 onConfirm={handleConfirm}
                 isPending={updateStatus.isPending}
             />
@@ -1596,7 +1634,7 @@ import { DirectoryHeader } from './components/DirectoryHeader';
 import { DirectoryToolbar } from './components/DirectoryToolbar';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeProfile } from './components/EmployeeProfile';
-import { employeeDisplayName } from './components/EmployeeAvatar';
+import { employeeDisplayName } from './employeeName';
 import InactiveEmployees from './InactiveEmployees';
 import { EditAttendanceModal } from './AttendanceSection';
 import { Users } from 'lucide-react';

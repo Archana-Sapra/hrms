@@ -8,6 +8,19 @@ import { differenceInYears } from 'date-fns';
  * to ensure data integrity before sending to the backend.
  */
 
+/**
+ * Allow "" (field cleared or never filled) alongside a valid value.
+ *
+ * `.optional()` alone only permits the key being *absent*, but the profile form
+ * always submits every field, and clearing an input submits "". That made
+ * genuinely optional data unsaveable: an employee with no mother's phone, no
+ * PAN, or no emergency contact could not be saved at all, because "" failed the
+ * format regex. Mirrors `optionalOrBlank` in backend/validators/employee.schemas.ts,
+ * which already accepts blanks — the frontend was rejecting data the API allows.
+ */
+const optionalOrBlank = <T extends z.ZodType<string>>(schema: T) =>
+  z.union([schema, z.literal('')]).optional();
+
 // Helper validators
 const indianPhone = z.string().regex(
   /^[6-9]\d{9}$/,
@@ -79,14 +92,16 @@ export const employeeSchema = z.object({
 
   employeeId: employeeId,
 
-  // Optional but validated fields
-  dateOfBirth: dateOfBirth.optional(),
+  // Optional but validated fields.
+  // Every one accepts "" — see optionalOrBlank above. An employee with no
+  // parents on record, no PAN, or no emergency contact must still be saveable.
+  dateOfBirth: z.union([dateOfBirth, z.literal('')]).optional(),
 
-  joiningDate: joiningDate.optional(),
+  joiningDate: z.union([joiningDate, z.literal('')]).optional(),
 
-  gender: z.enum(['male', 'female', 'other']).optional(),
+  gender: optionalOrBlank(z.enum(['male', 'female', 'other'])),
 
-  maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional(),
+  maritalStatus: optionalOrBlank(z.enum(['single', 'married', 'divorced', 'widowed'])),
 
   department: z.string().max(100).optional(),
 
@@ -94,9 +109,13 @@ export const employeeSchema = z.object({
 
   companyName: z.string().max(100).optional(),
 
-  employmentType: z.enum(['fulltime', 'intern', 'remote', 'contract', 'parttime']).optional(),
+  employmentType: optionalOrBlank(
+    z.enum(['fulltime', 'intern', 'remote', 'contract', 'parttime'])
+  ),
 
-  officeAddress: z.enum(['SanikColony', 'Indore', 'N.F.C.', 'Offsite']).optional(),
+  officeAddress: optionalOrBlank(
+    z.enum(['SanikColony', 'Indore', 'N.F.C.', 'Offsite'])
+  ),
 
   reportingSupervisor: z.string().max(100).optional(),
 
@@ -105,32 +124,32 @@ export const employeeSchema = z.object({
 
   emergencyContactName: z.string().max(100).optional(),
 
-  emergencyContactNumber: indianPhone.optional(),
+  emergencyContactNumber: optionalOrBlank(indianPhone),
 
   // Parent Information
   fatherName: z.string().max(100).optional(),
 
-  fatherPhone: indianPhone.optional(),
+  fatherPhone: optionalOrBlank(indianPhone),
 
   motherName: z.string().max(100).optional(),
 
-  motherPhone: indianPhone.optional(),
+  motherPhone: optionalOrBlank(indianPhone),
 
   // Government IDs
-  aadhaarNumber: aadhaarNumber.optional(),
+  aadhaarNumber: optionalOrBlank(aadhaarNumber),
 
-  panNumber: panNumber.optional(),
+  panNumber: optionalOrBlank(panNumber),
 
   // Banking Information
   bankName: z.string().max(100).optional(),
 
-  bankAccountNumber: z.string()
-    .regex(/^\d{9,18}$/, 'Bank account number must be 9-18 digits')
-    .optional(),
+  bankAccountNumber: optionalOrBlank(
+    z.string().regex(/^\d{9,18}$/, 'Bank account number must be 9-18 digits')
+  ),
 
-  bankIFSCCode: ifscCode.optional(),
+  bankIFSCCode: optionalOrBlank(ifscCode),
 
-  paymentMode: z.enum(['Bank Transfer', 'Cheque', 'Cash']).optional(),
+  paymentMode: optionalOrBlank(z.enum(['Bank Transfer', 'Cheque', 'Cash'])),
 
   // Status
   isActive: z.boolean().optional(),
