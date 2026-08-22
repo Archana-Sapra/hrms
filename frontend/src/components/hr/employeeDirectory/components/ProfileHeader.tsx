@@ -35,7 +35,11 @@ export function ProfileHeader({
                 </Button>
             )}
 
-            <div className="flex items-start gap-3">
+            {/* items-center, not items-start: the avatar is 56px tall, so
+                top-aligning pinned the status pill, Edit and the overflow
+                button to the top edge and left them visually adrift from the
+                name they belong to. */}
+            <div className="flex items-center gap-3">
                 <EmployeeAvatar name={name} src={employee.profilePicture} className="size-14" />
                 <div className="min-w-0 flex-1">
                     <h2 className="truncate text-lg font-semibold text-foreground">{name}</h2>
@@ -64,11 +68,11 @@ export function ProfileHeader({
                     </div>
                     {isEditing ? (
                         <>
-                            <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
+                            <Button variant="ghost" size="sm" className="h-9" onClick={onCancel} disabled={isSaving}>
                                 <X className="size-4 sm:mr-1.5" aria-hidden="true" />
                                 <span className="sr-only sm:not-sr-only">Cancel</span>
                             </Button>
-                            <Button size="sm" onClick={onSave} disabled={isSaving}>
+                            <Button size="sm" className="h-9" onClick={onSave} disabled={isSaving}>
                                 <Save className="size-4 sm:mr-1.5" aria-hidden="true" />
                                 <span className="sr-only sm:not-sr-only">
                                     {isSaving ? 'Saving…' : 'Save'}
@@ -77,7 +81,7 @@ export function ProfileHeader({
                         </>
                     ) : (
                         <>
-                            <Button variant="outline" size="sm" onClick={onEdit}>
+                            <Button variant="outline" size="sm" className="h-9" onClick={onEdit}>
                                 <Pencil className="size-4 sm:mr-1.5" aria-hidden="true" />
                                 <span className="sr-only sm:not-sr-only">Edit</span>
                             </Button>
