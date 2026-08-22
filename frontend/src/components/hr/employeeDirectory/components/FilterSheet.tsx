@@ -76,9 +76,20 @@ export function FilterSheet({
                     </div>
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
-                    <Button variant="ghost" onClick={filters.clearFilters}>Clear all</Button>
-                    <Button onClick={() => onOpenChange(false)}>
+                {/* Clear is only offered when there is something to clear —
+                    otherwise it is a permanent no-op competing with the confirm
+                    action. Both are h-11 for touch. */}
+                <DialogFooter className="gap-2 sm:gap-2">
+                    {filters.activeFilterCount > 0 && (
+                        <Button
+                            variant="outline"
+                            className="h-11 sm:flex-1"
+                            onClick={filters.clearFilters}
+                        >
+                            Clear all
+                        </Button>
+                    )}
+                    <Button className="h-11 sm:flex-1" onClick={() => onOpenChange(false)}>
                         Show {filters.visible.length} result{filters.visible.length === 1 ? '' : 's'}
                     </Button>
                 </DialogFooter>

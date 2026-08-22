@@ -3,8 +3,6 @@ import { Label } from '@/components/ui/label';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { sanitizeText } from '@/utils/sanitization';
-
 export type ProfileFieldType = 'text' | 'email' | 'tel' | 'date' | 'select';
 
 // Employee.address is `string | { street?, city?, state?, pincode? }`. The
@@ -21,6 +19,10 @@ function toEditableString(value: unknown): string {
     return String(value);
 }
 
+// No sanitizeText here. React escapes text nodes on render, and sanitizeText
+// escapes for HTML *attribute* contexts — running both turned an employee ID of
+// "CFG/CIAML/15FBD" into the literal "CFG&#x2F;CIAML&#x2F;15FBD" on screen.
+// Values render as-is; JSX handles the escaping.
 function formatDisplay(value: unknown, type: ProfileFieldType): string {
     if (value === null || value === undefined || value === '') return '—';
     if (type === 'date') {
@@ -28,10 +30,9 @@ function formatDisplay(value: unknown, type: ProfileFieldType): string {
         return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
     }
     if (typeof value === 'object') {
-        const flattened = toEditableString(value);
-        return flattened ? sanitizeText(flattened) : '—';
+        return toEditableString(value) || '—';
     }
-    return sanitizeText(String(value));
+    return String(value);
 }
 
 function toDateInputValue(value: unknown): string {

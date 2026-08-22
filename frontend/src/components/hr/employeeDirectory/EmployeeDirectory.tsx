@@ -9,7 +9,6 @@ import {
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useToast } from '../../ui/toast';
 import { useConfirm } from '../../ui/confirm-dialog';
-import { sanitizeText } from '../../../utils/sanitization';
 import {
     validateUpdateEmployee,
     validateField,
@@ -146,13 +145,15 @@ export default function EmployeeDirectory() {
         // MongoDB rejects $set on the immutable _id.
         const { _id: _omit, ...fields } = (validation.data ?? {}) as Record<string, unknown>;
 
+        // No sanitizeText on the payload. It escapes for HTML *attribute*
+        // contexts, so persisting its output stored "O&#x27;Brien" for O'Brien
+        // and re-escaped the entity on every subsequent save. Zod has already
+        // validated these fields, React escapes on render, and Mongoose
+        // parameterises the write — escaping here only corrupted the data.
         updateEmployee.mutate(
             {
                 ...(fields as UpdateEmployeeDto),
                 id: employeeProfile._id,
-                firstName: sanitizeText(String(fields.firstName ?? '')),
-                lastName: sanitizeText(String(fields.lastName ?? '')),
-                address: sanitizeText(String(fields.address ?? '')),
             },
             {
                 onSuccess: () => {
