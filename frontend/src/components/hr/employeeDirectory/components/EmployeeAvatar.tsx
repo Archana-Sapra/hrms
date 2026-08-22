@@ -1,5 +1,4 @@
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import type { Employee } from '@/types';
 
 // Deterministic fallback tint so an employee without a photo keeps the same
 // colour across renders. Mirrors ui/avatarIcon, which can only ever render the
@@ -8,12 +7,6 @@ const AVATAR_TINTS = [
     'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
     'bg-purple-500', 'bg-pink-500', 'bg-indigo-500',
 ];
-
-export function employeeDisplayName(
-    e: Pick<Employee, 'name' | 'firstName' | 'lastName'>,
-): string {
-    return e.name?.trim() || `${e.firstName ?? ''} ${e.lastName ?? ''}`.trim();
-}
 
 export function EmployeeAvatar({
     name,

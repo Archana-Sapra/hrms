@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Employee, User } from '@/types';
-import { employeeDisplayName } from './components/EmployeeAvatar';
+import { employeeDisplayName } from './employeeName';
 
 export type LinkState = 'all' | 'linked' | 'unlinked';
 
