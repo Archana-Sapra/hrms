@@ -64,11 +64,22 @@ export function ProfileFields({
     const source = (isEditing && draft ? draft : employee) as Record<string, unknown>;
 
     return (
-        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        // Sections are full-width horizontal bands, and the FIELDS flow in
+        // columns inside each one. Laying the three sections out side by side —
+        // as a grid or as CSS columns — cannot work: they hold 9, 12 and 4
+        // fields, so Financial always ended up a stub next to a column three
+        // times its height. Banding them means every row is full, and a short
+        // section is simply a short band.
+        <div className="space-y-5">
             {GROUPS.map((group) => (
-                <section key={group.title}>
-                    <h3 className="mb-2 text-sm font-semibold text-foreground">{group.title}</h3>
-                    <dl className="divide-y divide-border rounded-lg border border-border bg-card px-4 py-1">
+                <section
+                    key={group.title}
+                    className="overflow-hidden rounded-xl border border-border bg-card"
+                >
+                    <h3 className="border-b border-border bg-muted/40 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {group.title}
+                    </h3>
+                    <dl className="grid grid-cols-1 gap-x-8 px-4 py-2 md:grid-cols-2 xl:grid-cols-3">
                         {group.fields.map((f) => (
                             <ProfileField
                                 key={String(f.name)}

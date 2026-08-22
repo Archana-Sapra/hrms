@@ -42,15 +42,26 @@ export function ProfileHeader({
                     <p className="truncate text-sm text-muted-foreground">
                         {[employee.position, employee.department].filter(Boolean).join(' · ') || '—'}
                     </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge variant={employee.isActive ? 'success' : 'error'}>
-                            {employee.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                        {!isLinked && <Badge variant="warning">No user account</Badge>}
-                    </div>
                 </div>
 
+                {/* Status sits with the actions, not under the name: it is
+                    controlled from the overflow menu beside it, and as a third
+                    line under the role it read as body content. h-9 matches the
+                    buttons so the row shares one baseline. */}
                 <div className="flex shrink-0 items-center gap-2">
+                    <div className="hidden items-center gap-1.5 sm:flex">
+                        {!isLinked && (
+                            <Badge variant="warning" className="h-9 rounded-md px-3">
+                                No user account
+                            </Badge>
+                        )}
+                        <Badge
+                            variant={employee.isActive ? 'success' : 'error'}
+                            className="h-9 rounded-md px-3"
+                        >
+                            {employee.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                    </div>
                     {isEditing ? (
                         <>
                             <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
@@ -121,6 +132,15 @@ export function ProfileHeader({
                         </>
                     )}
                 </div>
+            </div>
+
+            {/* Below sm the action row has no width to spare, so status moves
+                to its own line rather than being dropped. */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:hidden">
+                <Badge variant={employee.isActive ? 'success' : 'error'}>
+                    {employee.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+                {!isLinked && <Badge variant="warning">No user account</Badge>}
             </div>
         </div>
     );

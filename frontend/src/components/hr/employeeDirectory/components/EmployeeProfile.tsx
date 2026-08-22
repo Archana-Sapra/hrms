@@ -62,7 +62,9 @@ export function EmployeeProfile({
             />
 
             <Tabs value={tab} onValueChange={setTab} className="flex-1 p-4">
-                <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:inline-grid">
+                {/* Full-width on every breakpoint. `sm:w-auto sm:inline-grid`
+                    squashed four tabs into the left third of a wide pane. */}
+                <TabsList className="grid h-11 w-full grid-cols-4">
                     <TabsTrigger value="profile">Profile</TabsTrigger>
                     <TabsTrigger value="attendance">Attendance</TabsTrigger>
                     <TabsTrigger value="leave">Leave</TabsTrigger>

@@ -15,7 +15,7 @@ import {
     employeeSchema,
 } from '../../../schemas/employeeValidation';
 import { useEmployeeFilters } from './useEmployeeFilters';
-import { DirectoryHeader } from './components/DirectoryHeader';
+import { DirectoryHeader, DirectoryActions, DirectoryStatusTabs } from './components/DirectoryHeader';
 import { DirectoryToolbar } from './components/DirectoryToolbar';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeProfile } from './components/EmployeeProfile';
@@ -231,6 +231,17 @@ export default function EmployeeDirectory() {
 
     const listPane = (
         <div className="flex min-h-0 flex-col lg:w-90 lg:shrink-0 lg:border-r lg:border-border">
+            {/* Desktop only: status switch AND page actions live in the rail,
+                not in a full-width header. A header spanning both panes left a
+                dead strip above the detail pane with the buttons stranded far
+                right; keeping them here means no row is half empty. */}
+            <div className="hidden shrink-0 flex-col gap-2.5 border-b border-border bg-card px-4 py-3 lg:flex">
+                <DirectoryActions
+                    onAdd={() => navigate('/employees/add')}
+                    onLink={() => navigate('/employees/link')}
+                />
+                <DirectoryStatusTabs status={status} onStatusChange={setStatus} />
+            </div>
             <DirectoryToolbar filters={filters} departments={departments} />
             <div className="flex-1 lg:overflow-y-auto">
                 <EmployeeList
@@ -303,7 +314,7 @@ export default function EmployeeDirectory() {
     ) : profileLoading ? (
         <div className="flex-1 p-6 text-center text-muted-foreground">Loading profile…</div>
     ) : (
-        <div className="flex flex-1 items-center justify-center p-10 text-center">
+        <div className="flex h-full flex-1 items-center justify-center p-10 text-center">
             <div>
                 <Users className="mx-auto size-10 text-muted-foreground" aria-hidden="true" />
                 <p className="mt-3 font-medium text-foreground">Select an employee</p>
@@ -345,17 +356,16 @@ export default function EmployeeDirectory() {
         );
     }
 
+    // h-full with internal overflow, not min-h-full: the page fills its parent
+    // (Sidebar.tsx:288, itself h-dvh) so each pane scrolls independently.
+    // Previously the whole page scrolled, which pushed the "Select an employee"
+    // empty state out of view instead of centring it. h-full rather than h-dvh
+    // so this stays correct if the shell's own height ever changes.
     return (
-        <div className="flex min-h-full flex-col bg-background">
-            <DirectoryHeader
-                status={status}
-                onStatusChange={setStatus}
-                onAdd={() => navigate('/employees/add')}
-                onLink={() => navigate('/employees/link')}
-            />
-            <div className="flex min-h-0 flex-1 lg:h-[calc(100dvh-8rem)]">
+        <div className="flex h-full flex-col overflow-hidden bg-background">
+            <div className="flex min-h-0 flex-1">
                 {listPane}
-                <div className="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">{profilePane}</div>
+                <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{profilePane}</div>
             </div>
             {attendanceModal}
         </div>

@@ -57,12 +57,22 @@ export function ProfileField({
     const errorId = `${fieldId}-error`;
 
     if (!isEditing) {
+        const display = formatDisplay(value, type);
+        const isEmpty = display === '—';
         return (
-            <div className="py-1.5">
-                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {label}
-                </dt>
-                <dd className="mt-0.5 text-sm text-foreground">{formatDisplay(value, type)}</dd>
+            // Each field is one cell of its section's grid, so the label stacks
+            // above the value. No per-cell rule: with a multi-column grid the
+            // last cell of each row is not `:last-child`, so borders stranded
+            // themselves mid-row. Spacing separates the fields instead.
+            <div className="py-2">
+                <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                <dd
+                    className={`mt-1 text-sm wrap-break-word ${
+                        isEmpty ? 'text-muted-foreground/60' : 'text-foreground'
+                    }`}
+                >
+                    {display}
+                </dd>
             </div>
         );
     }
@@ -71,7 +81,7 @@ export function ProfileField({
 
     return (
         <div className="py-1.5">
-            <Label htmlFor={fieldId} className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <Label htmlFor={fieldId} className="text-xs font-medium text-muted-foreground">
                 {label}
             </Label>
             {type === 'select' ? (
