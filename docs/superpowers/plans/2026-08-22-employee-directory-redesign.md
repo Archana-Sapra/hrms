@@ -1256,7 +1256,12 @@ export function LeaveActionDialog({
 
     return (
         <Dialog open onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent
+                className="sm:max-w-md"
+                onEscapeKeyDown={(e) => { if (isPending) e.preventDefault(); }}
+                onPointerDownOutside={(e) => { if (isPending) e.preventDefault(); }}
+                onInteractOutside={(e) => { if (isPending) e.preventDefault(); }}
+            >
                 <DialogHeader>
                     <DialogTitle>{approving ? 'Approve leave request?' : 'Reject leave request?'}</DialogTitle>
                     <DialogDescription>
@@ -1384,10 +1389,14 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
                             <p className="mt-2 text-sm text-muted-foreground">{leave.reason}</p>
                         )}
                         {leave.status === 'pending' && (
+                            // h-11 (44px), not size="sm"'s h-8: these are the
+                            // primary touch actions on a phone. The desktop
+                            // table below keeps size="sm" — it is pointer-only
+                            // from md up, where 44px rows would bloat the table.
                             <div className="mt-3 flex gap-2">
                                 <Button
                                     size="sm"
-                                    className="flex-1"
+                                    className="h-11 flex-1"
                                     onClick={() => setPendingAction({ leave, action: 'approved' })}
                                 >
                                     Approve
@@ -1395,7 +1404,7 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1"
+                                    className="h-11 flex-1"
                                     onClick={() => setPendingAction({ leave, action: 'rejected' })}
                                 >
                                     Reject
@@ -1448,7 +1457,12 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
             <LeaveActionDialog
                 leave={pendingAction?.leave ?? null}
                 action={pendingAction?.action ?? null}
-                onOpenChange={(open) => { if (!open) setPendingAction(null); }}
+                onOpenChange={(open) => {
+                    // Ignore dismissal (X, Escape, overlay click) while the
+                    // mutation is in flight — the request completes regardless,
+                    // and closing early strips the pending feedback.
+                    if (!open && !updateStatus.isPending) setPendingAction(null);
+                }}
                 onConfirm={handleConfirm}
                 isPending={updateStatus.isPending}
             />
