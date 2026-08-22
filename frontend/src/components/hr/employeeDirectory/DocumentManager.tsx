@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, FileText, User, Shield, GraduationCap, Upload, Eye, Plus, X } from 'lucide-react';
+import { FileText, User, Shield, GraduationCap, Upload, Eye, Plus, X } from 'lucide-react';
 import { useToast } from '../../ui/toast';
 import BusyOverlay from '../../ui/BusyOverlay';
 import { useEmployeeDocuments, useUploadDocument, useDeleteDocument } from '@/hooks/queries';
@@ -24,7 +24,7 @@ interface DocumentTypeConfig {
   accept: string;
 }
 
-const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBack }) => {
+const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBack: _onBack }) => {
   const { toast } = useToast();
 
   const documentTypes: DocumentTypeConfig[] = [
@@ -100,40 +100,16 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBa
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-full items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading documents...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Simple Header */}
-      <div className="border-b border-border bg-card shadow-sm">
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Back to employee profile"
-              className="rounded-lg p-2 transition-colors hover:bg-accent"
-            >
-              <ArrowLeft className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            </button>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">
-                {employeeProfile.firstName} {employeeProfile.lastName}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Employee Documents
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-full bg-background">
       {/* Document Grid */}
-      <div className="px-6 py-8">
+      <div className="p-0">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {documentTypes.map((docType) => {
             const IconComponent = docType.icon;

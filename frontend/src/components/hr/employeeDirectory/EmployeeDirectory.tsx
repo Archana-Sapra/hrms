@@ -270,7 +270,20 @@ export default function EmployeeDirectory() {
             attendanceTrigger={attendanceTrigger}
             onEdit={() => {
                 setIsEditing(true);
-                setDraft({ ...employeeProfile });
+                // Employee.address may be the legacy object form, but
+                // updateEmployeeSchema only accepts a string. Seeding the raw
+                // object makes validation fail on save for a field the user
+                // never touched, with a message that does not match what the
+                // (correctly flattened) input displays.
+                setDraft({
+                    ...employeeProfile,
+                    address:
+                        typeof employeeProfile.address === 'object' && employeeProfile.address
+                            ? Object.values(employeeProfile.address)
+                                  .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+                                  .join(', ')
+                            : employeeProfile.address,
+                });
                 setDraftFor(employeeProfile._id);
             }}
             onCancel={() => {
