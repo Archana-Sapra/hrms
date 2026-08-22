@@ -861,13 +861,30 @@ import { sanitizeText } from '@/utils/sanitization';
 
 export type ProfileFieldType = 'text' | 'email' | 'tel' | 'date' | 'select';
 
+// Employee.address is `string | { street?, city?, state?, pincode? }`. The
+// legacy object form must never reach an <input>: String(obj) yields
+// "[object Object]", which the save path would then persist over the real
+// address. Flatten it to a comma-joined line so it round-trips as text.
+function toEditableString(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+        const parts = Object.values(value as Record<string, unknown>)
+            .filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+        return parts.join(', ');
+    }
+    return String(value);
+}
+
 function formatDisplay(value: unknown, type: ProfileFieldType): string {
     if (value === null || value === undefined || value === '') return '—';
     if (type === 'date') {
         const d = new Date(String(value));
         return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB');
     }
-    if (typeof value === 'object') return '—';
+    if (typeof value === 'object') {
+        const flattened = toEditableString(value);
+        return flattened ? sanitizeText(flattened) : '—';
+    }
     return sanitizeText(String(value));
 }
 
@@ -903,7 +920,7 @@ export function ProfileField({
         );
     }
 
-    const stringValue = type === 'date' ? toDateInputValue(value) : String(value ?? '');
+    const stringValue = type === 'date' ? toDateInputValue(value) : toEditableString(value);
 
     return (
         <div className="py-1.5">
