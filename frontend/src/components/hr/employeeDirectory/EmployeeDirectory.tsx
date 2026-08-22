@@ -59,6 +59,7 @@ export default function EmployeeDirectory() {
     const [attendanceTrigger, setAttendanceTrigger] = useState(0);
     const [isEditing, setIsEditing] = useState(false);
     const [draft, setDraft] = useState<Partial<Employee> | null>(null);
+    const [draftFor, setDraftFor] = useState<string | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const { data: employees = [], isLoading, error: employeesError } = useEmployees({ status: 'active' });
@@ -91,7 +92,13 @@ export default function EmployeeDirectory() {
     }
 
     const selectEmployee = (id: string) => navigate(`/employees/${id}`);
-    const goBack = () => navigate(`/employees${status === 'inactive' ? '?status=inactive' : ''}`);
+
+    // Carry the whole query string back, not just `status` — search and filters
+    // are URL-persistable and must survive leaving a profile.
+    const goBack = () => {
+        const query = searchParams.toString();
+        navigate(`/employees${query ? `?${query}` : ''}`);
+    };
 
     const setStatus = (next: 'active' | 'inactive') => {
         const params = new URLSearchParams(searchParams);
@@ -116,6 +123,8 @@ export default function EmployeeDirectory() {
 
     const handleSave = () => {
         if (!draft || !employeeProfile) return;
+        // Never PUT a draft that was opened for a different employee.
+        if (draftFor !== employeeProfile._id) return;
 
         // employeeId is displayed read-only and can contain slashes that fail
         // the regex, so it is never submitted.
@@ -149,6 +158,7 @@ export default function EmployeeDirectory() {
                 onSuccess: () => {
                     setIsEditing(false);
                     setDraft(null);
+                    setDraftFor(null);
                     setErrors({});
                     toast({ title: 'Saved', description: 'Employee updated.' });
                 },
@@ -226,7 +236,7 @@ export default function EmployeeDirectory() {
                     employees={filters.visible}
                     selectedId={selectedId}
                     linkedMap={filters.linkedMap}
-                    isLoading={isLoading && employees.length === 0}
+                    isLoading={isLoading}
                     error={employeesError ? 'Could not load employees.' : null}
                     hasSearch={!!filters.search || filters.activeFilterCount > 0}
                     onSelect={selectEmployee}
@@ -236,24 +246,39 @@ export default function EmployeeDirectory() {
         </div>
     );
 
-    const profilePane = profileLoading ? (
-        <div className="flex-1 p-6 text-center text-muted-foreground">Loading profile…</div>
-    ) : employeeProfile ? (
+    // The draft belongs to the employee it was opened for. Selecting another
+    // employee mid-edit must not carry A's values onto B's form — and must
+    // never let handleSave PUT them to B's _id.
+    const draftIsForThisEmployee = !!employeeProfile && draftFor === employeeProfile._id;
+
+    // Prefer cached data over the loading branch: after a save the mutation
+    // invalidates the query, and branching on profileLoading first would flash
+    // "Loading profile…" over a record we already hold.
+    const profilePane = employeeProfile ? (
         <EmployeeProfile
             employee={employeeProfile}
             leaves={leaves}
             isLinked={filters.linkedMap.has(employeeProfile.employeeId)}
-            isEditing={isEditing}
-            draft={draft}
-            errors={errors}
+            isEditing={isEditing && draftIsForThisEmployee}
+            draft={draftIsForThisEmployee ? draft : null}
+            errors={draftIsForThisEmployee ? errors : {}}
             isSaving={updateEmployee.isPending}
             isToggling={toggleStatus.isPending}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
             onEditAttendance={(record) => { setEditingRecord(record); setEditModalOpen(true); }}
             attendanceTrigger={attendanceTrigger}
-            onEdit={() => { setIsEditing(true); setDraft({ ...employeeProfile }); }}
-            onCancel={() => { setIsEditing(false); setDraft(null); setErrors({}); }}
+            onEdit={() => {
+                setIsEditing(true);
+                setDraft({ ...employeeProfile });
+                setDraftFor(employeeProfile._id);
+            }}
+            onCancel={() => {
+                setIsEditing(false);
+                setDraft(null);
+                setDraftFor(null);
+                setErrors({});
+            }}
             onSave={handleSave}
             onFieldChange={handleFieldChange}
             onToggleStatus={handleToggleStatus}
@@ -261,6 +286,8 @@ export default function EmployeeDirectory() {
             onBack={goBack}
             showBack={!isDesktop}
         />
+    ) : profileLoading ? (
+        <div className="flex-1 p-6 text-center text-muted-foreground">Loading profile…</div>
     ) : (
         <div className="flex flex-1 items-center justify-center p-10 text-center">
             <div>
