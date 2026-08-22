@@ -100,29 +100,31 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBa
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="animate-pulse text-slate-500">Loading documents...</div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Loading documents...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Simple Header */}
-      <div className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700">
+      <div className="border-b border-border bg-card shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={onBack}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              aria-label="Back to employee profile"
+              className="rounded-lg p-2 transition-colors hover:bg-accent"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <ArrowLeft className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             </button>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h1 className="text-xl font-semibold text-foreground">
                 {employeeProfile.firstName} {employeeProfile.lastName}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Employee Documents
               </p>
             </div>
@@ -132,18 +134,18 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBa
 
       {/* Document Grid */}
       <div className="px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {documentTypes.map((docType) => {
             const IconComponent = docType.icon;
             const existingDoc = getDocumentForType(docType.key);
 
             return (
-              <div key={docType.key} className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow overflow-hidden min-h-[280px]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gray-100 dark:bg-slate-700 rounded-lg">
-                    <IconComponent className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <div key={docType.key} className="min-h-70 overflow-hidden rounded-lg border border-border bg-card p-6 transition-shadow hover:shadow-md">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="rounded-lg bg-muted p-2">
+                    <IconComponent className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   </div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">{docType.label}</h3>
+                  <h3 className="font-medium text-foreground">{docType.label}</h3>
                 </div>
 
                 {existingDoc ? (
@@ -151,25 +153,25 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBa
                   <div className="space-y-4">
                     {/* Document preview */}
                     {isImage(existingDoc.fileName) ? (
-                      <div className="h-32 bg-gray-100 dark:bg-slate-700 rounded-lg overflow-hidden">
+                      <div className="h-32 overflow-hidden rounded-lg bg-muted">
                         <img
                           src={existingDoc.s3Url}
                           alt={existingDoc.fileName}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                         />
                       </div>
                     ) : (
-                      <div className="h-32 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                        <FileText className="w-12 h-12 text-gray-400" />
+                      <div className="flex h-32 items-center justify-center rounded-lg bg-muted">
+                        <FileText className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
                       </div>
                     )}
 
                     {/* File info */}
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={existingDoc.fileName}>
+                      <p className="truncate text-sm font-medium text-foreground" title={existingDoc.fileName}>
                         {existingDoc.fileName}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {new Date(existingDoc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -180,23 +182,25 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBa
                         href={existingDoc.s3Url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="h-4 w-4" aria-hidden="true" />
                         View
                       </a>
                       <button
+                        type="button"
                         onClick={() => handleFileDelete(existingDoc._id, docType.key)}
-                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors"
+                        aria-label={`Delete ${docType.label}`}
+                        className="rounded-md bg-muted px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
 
                     {/* Replace option */}
-                    <div className="pt-3 border-t border-gray-100 dark:border-slate-700">
-                      <label className="cursor-pointer flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                        <Upload className="w-4 h-4" />
+                    <div className="border-t border-border pt-3">
+                      <label className="flex cursor-pointer items-center justify-center gap-2 px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                        <Upload className="h-4 w-4" aria-hidden="true" />
                         Replace
                         <input
                           type="file"
@@ -214,14 +218,14 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBa
                 ) : (
                   /* No document - show upload */
                   <div className="space-y-4">
-                    <div className="h-32 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg flex items-center justify-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
-                      <label className="cursor-pointer flex flex-col items-center gap-2 p-4 text-center">
-                        <div className="p-3 bg-gray-100 dark:bg-slate-700 rounded-full">
-                          <Plus className="w-6 h-6 text-gray-400" />
+                    <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-border transition-colors hover:border-primary/50">
+                      <label className="flex cursor-pointer flex-col items-center gap-2 p-4 text-center">
+                        <div className="rounded-full bg-muted p-3">
+                          <Plus className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Upload Document</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">PDF, JPG, PNG</p>
+                          <p className="text-sm font-medium text-foreground">Upload Document</p>
+                          <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG</p>
                         </div>
                         <input
                           type="file"

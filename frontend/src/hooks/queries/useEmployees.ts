@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import axiosInstance from '@/lib/axios';
 import { queryKeys } from '@/lib/queryKeys';
 import { API_ENDPOINTS, buildEndpointWithQuery } from '@/lib/apiEndpoints';
@@ -19,6 +19,9 @@ export const useEmployees = (params?: EmployeeQueryParams) => {
       const { data } = await axiosInstance.get<ApiResponse<{ employees: Employee[] }>>(endpoint);
       return data.data?.employees || [];
     },
+    // Active and inactive are separate query keys, so switching tabs would
+    // otherwise render an empty list until the new fetch resolved.
+    placeholderData: keepPreviousData,
   });
 };
 

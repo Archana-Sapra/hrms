@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { UserX, Calendar, Mail, Phone, Building, User, RotateCcw, AlertTriangle, Eye, X } from 'lucide-react';
+import { UserX, Calendar, Mail, Phone, Building, RotateCcw, AlertTriangle, Eye } from 'lucide-react';
 import { useEmployees, useEmployee, useToggleEmployeeStatus } from '../../../hooks/queries';
 import { useToast } from '../../ui/toast';
 import { useConfirm } from '../../ui/confirm-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +12,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { EmployeeAvatar } from './components/EmployeeAvatar';
+import { employeeDisplayName } from './employeeName';
 import { formatDate } from '../../../utils/istUtils';
 import { Employee } from '../../../types';
 
@@ -78,22 +82,21 @@ const InactiveEmployees: React.FC = () => {
         );
     };
 
-
     if (loading) {
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="rounded-xl border border-border bg-card shadow-lg">
+                <div className="border-b border-border p-6">
                     <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                            <UserX className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        <div className="rounded-lg bg-destructive/10 p-2">
+                            <UserX className="h-6 w-6 text-destructive" />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inactive Employees</h2>
+                        <h2 className="text-xl font-bold text-foreground">Inactive Employees</h2>
                     </div>
                 </div>
                 <div className="p-6">
                     <div className="animate-pulse space-y-4">
                         {[1, 2, 3].map((i) => (
-                            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                            <div key={i} className="h-20 rounded-lg bg-muted"></div>
                         ))}
                     </div>
                 </div>
@@ -102,24 +105,24 @@ const InactiveEmployees: React.FC = () => {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="rounded-xl border border-border bg-card shadow-lg">
+            <div className="border-b border-border p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                            <UserX className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        <div className="rounded-lg bg-destructive/10 p-2">
+                            <UserX className="h-6 w-6 text-destructive" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Inactive Employees</h2>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <h2 className="text-xl font-bold text-foreground">Inactive Employees</h2>
+                            <p className="text-sm text-muted-foreground">
                                 {inactiveEmployees.length} deactivated employee{inactiveEmployees.length !== 1 ? 's' : ''}
                             </p>
                         </div>
                     </div>
 
                     {inactiveEmployees.length > 0 && (
-                        <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400">
-                            <AlertTriangle className="w-4 h-4" />
+                        <div className="hidden items-center space-x-2 text-amber-600 sm:flex dark:text-amber-400">
+                            <AlertTriangle className="h-4 w-4" />
                             <span className="text-sm font-medium">Deactivated accounts</span>
                         </div>
                     )}
@@ -128,274 +131,308 @@ const InactiveEmployees: React.FC = () => {
 
             <div className="p-6">
                 {inactiveEmployees.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-                            <UserX className="w-8 h-8 text-green-600 dark:text-green-400" />
+                    <div className="py-12 text-center">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
+                            <UserX className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Inactive Employees</h3>
-                        <p className="text-gray-600 dark:text-gray-400">All employees are currently active.</p>
+                        <h3 className="mb-2 text-lg font-medium text-foreground">No Inactive Employees</h3>
+                        <p className="text-muted-foreground">All employees are currently active.</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        {inactiveEmployees.map((employee: Employee) => (
-                            <div
-                                key={employee._id}
-                                className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 transition-all hover:shadow-md"
-                            >
-                                <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-                                    {/* Employee Info */}
-                                    <div className="flex-1 space-y-3">
-                                        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                                            <div className="flex items-center space-x-3">
-                                                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                                    <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                                                        {employee.name || `${employee.firstName} ${employee.lastName}`}
-                                                    </h3>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                        ID: {employee.employeeId}
-                                                    </p>
-                                                </div>
+                    <>
+                        {/* Mobile: cards */}
+                        <ul className="space-y-3 md:hidden">
+                            {inactiveEmployees.map((employee: Employee) => {
+                                const name = employeeDisplayName(employee);
+                                return (
+                                    <li
+                                        key={employee._id}
+                                        className="rounded-lg border border-border bg-muted/40 p-4"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <EmployeeAvatar name={name} src={employee.profilePicture} className="size-10" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate font-semibold text-foreground">{name}</p>
+                                                <p className="text-sm text-muted-foreground">ID: {employee.employeeId}</p>
                                             </div>
-
-                                            <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded-full">
-                                                <UserX className="w-3 h-3 text-red-600 dark:text-red-400" />
-                                                <span className="text-xs font-medium text-red-600 dark:text-red-400">
-                                                    Inactive
-                                                </span>
-                                            </div>
+                                            <Badge variant="error" className="shrink-0">Inactive</Badge>
                                         </div>
 
-                                        {/* Contact and Job Info Grid */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                                            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                                                <Mail className="w-4 h-4 shrink-0" />
+                                        <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+                                            <div className="flex items-center gap-2">
+                                                <Mail className="size-4 shrink-0" aria-hidden="true" />
                                                 <span className="truncate">{employee.email}</span>
                                             </div>
-
-                                            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                                                <Phone className="w-4 h-4 shrink-0" />
-                                                <span>{employee.phone}</span>
-                                            </div>
-
-                                            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                                                <Building className="w-4 h-4 shrink-0" />
-                                                <span className="truncate">{employee.department}</span>
-                                            </div>
-
-                                            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                                                <Calendar className="w-4 h-4 shrink-0" />
+                                            {employee.phone && (
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="size-4 shrink-0" aria-hidden="true" />
+                                                    <span>{employee.phone}</span>
+                                                </div>
+                                            )}
+                                            {employee.department && (
+                                                <div className="flex items-center gap-2">
+                                                    <Building className="size-4 shrink-0" aria-hidden="true" />
+                                                    <span className="truncate">{employee.department}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="size-4 shrink-0" aria-hidden="true" />
                                                 <span>Joined {formatDate(employee.joiningDate, false, 'DD MMM YYYY')}</span>
                                             </div>
                                         </div>
 
-                                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                                            <span className="font-medium">Position:</span> {employee.position}
+                                        <div className="mt-4 flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-11 flex-1"
+                                                onClick={() => handleViewEmployee(employee._id)}
+                                            >
+                                                <Eye className="size-4" aria-hidden="true" />
+                                                View
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="h-11 flex-1"
+                                                disabled={activatingId === employee._id}
+                                                onClick={() => handleReactivateEmployee(employee._id, name)}
+                                            >
+                                                <RotateCcw className="size-4" aria-hidden="true" />
+                                                {activatingId === employee._id ? 'Reactivating…' : 'Reactivate'}
+                                            </Button>
                                         </div>
-                                    </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
 
-                                    {/* Action Buttons */}
-                                    <div className="shrink-0 space-y-2 sm:space-y-0 sm:space-x-2 sm:flex sm:flex-row">
-                                        <button
-                                            onClick={() => handleViewEmployee(employee._id)}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full sm:w-auto justify-center"
-                                        >
-                                            <Eye className="w-4 h-4" />
-                                            <span>View</span>
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleReactivateEmployee(employee._id, employee.name || `${employee.firstName} ${employee.lastName}`)}
-                                            disabled={activatingId === employee._id}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 w-full sm:w-auto justify-center"
-                                        >
-                                            {activatingId === employee._id ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                                    <span>Reactivating...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <RotateCcw className="w-4 h-4" />
-                                                    <span>Reactivate</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                        {/* Desktop: table */}
+                        <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-muted/50">
+                                    <tr>
+                                        <th scope="col" className="p-3 text-left font-medium text-muted-foreground">Employee</th>
+                                        <th scope="col" className="p-3 text-left font-medium text-muted-foreground">Contact</th>
+                                        <th scope="col" className="p-3 text-left font-medium text-muted-foreground">Department</th>
+                                        <th scope="col" className="p-3 text-left font-medium text-muted-foreground">Joined</th>
+                                        <th scope="col" className="p-3 text-right font-medium text-muted-foreground">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {inactiveEmployees.map((employee: Employee) => {
+                                        const name = employeeDisplayName(employee);
+                                        return (
+                                            <tr key={employee._id} className="hover:bg-accent/40">
+                                                <td className="p-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <EmployeeAvatar name={name} src={employee.profilePicture} className="size-9" />
+                                                        <div className="min-w-0">
+                                                            <p className="truncate font-medium text-foreground">{name}</p>
+                                                            <p className="text-xs text-muted-foreground">ID: {employee.employeeId}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-muted-foreground">
+                                                    <div className="truncate">{employee.email}</div>
+                                                    {employee.phone && <div className="text-xs">{employee.phone}</div>}
+                                                </td>
+                                                <td className="max-w-40 truncate p-3 text-foreground">{employee.department || '—'}</td>
+                                                <td className="p-3 whitespace-nowrap text-foreground">
+                                                    {formatDate(employee.joiningDate, false, 'DD MMM YYYY')}
+                                                </td>
+                                                <td className="p-3 text-right whitespace-nowrap">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleViewEmployee(employee._id)}
+                                                        >
+                                                            <Eye className="size-4" aria-hidden="true" />
+                                                            View
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={activatingId === employee._id}
+                                                            onClick={() => handleReactivateEmployee(employee._id, name)}
+                                                        >
+                                                            <RotateCcw className="size-4" aria-hidden="true" />
+                                                            {activatingId === employee._id ? 'Reactivating…' : 'Reactivate'}
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
 
             {/* Employee Details Modal */}
             <Dialog open={viewModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
-                <DialogContent className="max-w-4xl max-h-[90vh] gap-0 overflow-y-auto p-0">
-                        {/* Modal Header */}
-                        <DialogHeader className="p-6 pr-14 border-b border-gray-200 dark:border-gray-700 text-left">
-                            <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                                Employee Details
-                            </DialogTitle>
-                            <DialogDescription className="sr-only">
-                                Details for this deactivated employee.
-                            </DialogDescription>
-                        </DialogHeader>
+                <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-y-auto p-0">
+                    {/* Modal Header */}
+                    <DialogHeader className="border-b border-border p-6 pr-14 text-left">
+                        <DialogTitle className="text-2xl font-bold text-foreground">
+                            Employee Details
+                        </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Details for this deactivated employee.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        {/* Modal Content */}
-                        <div className="p-6">
-                            {loadingDetails ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
-                                    <span className="ml-3 text-gray-600 dark:text-gray-400">Loading employee details...</span>
-                                </div>
-                            ) : employeeDetails ? (
-                                <div className="space-y-6">
-                                    {/* Employee Header */}
-                                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    {/* Modal Content */}
+                    <div className="p-6">
+                        {loadingDetails ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                                <span className="ml-3 text-muted-foreground">Loading employee details...</span>
+                            </div>
+                        ) : employeeDetails ? (
+                            <div className="space-y-6">
+                                {/* Employee Header */}
+                                <div className="rounded-lg bg-muted/40 p-4">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <EmployeeAvatar
+                                                name={employeeDisplayName(employeeDetails)}
+                                                src={employeeDetails.profilePicture}
+                                                className="size-12"
+                                            />
                                             <div>
-                                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                                                <h3 className="text-xl font-semibold text-foreground">
                                                     {employeeDetails.firstName} {employeeDetails.lastName}
                                                 </h3>
-                                                <p className="text-gray-600 dark:text-gray-400">
+                                                <p className="text-muted-foreground">
                                                     {employeeDetails.position} • {employeeDetails.department}
                                                 </p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-500">
+                                                <p className="text-sm text-muted-foreground">
                                                     Employee ID: {employeeDetails.employeeId}
                                                 </p>
                                             </div>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Badge variant="error">Inactive</Badge>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Employee Details Grid */}
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    {/* Contact Information */}
+                                    <div className="space-y-3">
+                                        <h4 className="border-b border-border pb-2 font-semibold text-foreground">
+                                            Contact Information
+                                        </h4>
+                                        <div className="space-y-2 text-sm">
                                             <div className="flex items-center space-x-2">
-                                                <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-sm font-medium">
-                                                    Inactive
-                                                </span>
+                                                <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <span className="text-foreground">{employeeDetails.email}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <span className="text-foreground">{employeeDetails.phone}</span>
+                                            </div>
+                                            <div className="flex items-start space-x-2">
+                                                <Building className="mt-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <span className="text-foreground">{employeeDetails.address || 'N/A'}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Employee Details Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {/* Contact Information */}
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                                                Contact Information
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div className="flex items-center space-x-2">
-                                                    <Mail className="w-4 h-4 text-gray-500" />
-                                                    <span className="text-gray-900 dark:text-white">{employeeDetails.email}</span>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Phone className="w-4 h-4 text-gray-500" />
-                                                    <span className="text-gray-900 dark:text-white">{employeeDetails.phone}</span>
-                                                </div>
-                                                <div className="flex items-start space-x-2">
-                                                    <Building className="w-4 h-4 text-gray-500 mt-0.5" />
-                                                    <span className="text-gray-900 dark:text-white">{employeeDetails.address || 'N/A'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Personal Information */}
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                                                Personal Information
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Date of Birth:</span> {formatDate(employeeDetails.dateOfBirth, false, 'DD MMM YYYY')}</div>
-                                                <div><span className="font-medium">Gender:</span> {employeeDetails.gender}</div>
-                                                <div><span className="font-medium">Marital Status:</span> {employeeDetails.maritalStatus}</div>
-                                                <div><span className="font-medium">Father's Name:</span> {employeeDetails.fatherName || 'N/A'}</div>
-                                                <div><span className="font-medium">Mother's Name:</span> {employeeDetails.motherName || 'N/A'}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Work Information */}
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                                                Work Information
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Company:</span> {employeeDetails.companyName || 'N/A'}</div>
-                                                <div><span className="font-medium">Employment Type:</span> {employeeDetails.employmentType}</div>
-                                                <div><span className="font-medium">Joining Date:</span> {formatDate(employeeDetails.joiningDate, false, 'DD MMM YYYY')}</div>
-                                                <div><span className="font-medium">Office:</span> {employeeDetails.officeAddress || 'N/A'}</div>
-                                                <div><span className="font-medium">Supervisor:</span> {employeeDetails.reportingSupervisor || 'N/A'}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Government Documents */}
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                                                Government Documents
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Aadhaar Number:</span> {employeeDetails.aadhaarNumber || 'N/A'}</div>
-                                                <div><span className="font-medium">PAN Number:</span> {employeeDetails.panNumber || 'N/A'}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Banking Information */}
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                                                Banking Information
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Bank Name:</span> {employeeDetails.bankName || 'N/A'}</div>
-                                                <div><span className="font-medium">Account Number:</span> {employeeDetails.bankAccountNumber || 'N/A'}</div>
-                                                <div><span className="font-medium">IFSC Code:</span> {employeeDetails.bankIFSCCode || 'N/A'}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Emergency Contact */}
-                                        <div className="space-y-3">
-                                            <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                                                Emergency Contact
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Name:</span> {employeeDetails.emergencyContactName || "N/A"}</div>
-                                                <div><span className="font-medium">Phone:</span> {employeeDetails.emergencyContactNumber || "N/A"}</div>
-                                            </div>
+                                    {/* Personal Information */}
+                                    <div className="space-y-3">
+                                        <h4 className="border-b border-border pb-2 font-semibold text-foreground">
+                                            Personal Information
+                                        </h4>
+                                        <div className="space-y-2 text-sm text-foreground">
+                                            <div><span className="font-medium">Date of Birth:</span> {formatDate(employeeDetails.dateOfBirth, false, 'DD MMM YYYY')}</div>
+                                            <div><span className="font-medium">Gender:</span> {employeeDetails.gender}</div>
+                                            <div><span className="font-medium">Marital Status:</span> {employeeDetails.maritalStatus}</div>
+                                            <div><span className="font-medium">Father's Name:</span> {employeeDetails.fatherName || 'N/A'}</div>
+                                            <div><span className="font-medium">Mother's Name:</span> {employeeDetails.motherName || 'N/A'}</div>
                                         </div>
                                     </div>
 
-                                    {/* Action Buttons in Modal */}
-                                    <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                                        <button
-                                            onClick={() => handleReactivateEmployee(employeeDetails._id, `${employeeDetails.firstName} ${employeeDetails.lastName}`)}
-                                            disabled={activatingId === employeeDetails._id}
-                                            className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors"
-                                        >
-                                            {activatingId === employeeDetails._id ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                                    <span>Reactivating...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <RotateCcw className="w-4 h-4" />
-                                                    <span>Reactivate Employee</span>
-                                                </>
-                                            )}
-                                        </button>
+                                    {/* Work Information */}
+                                    <div className="space-y-3">
+                                        <h4 className="border-b border-border pb-2 font-semibold text-foreground">
+                                            Work Information
+                                        </h4>
+                                        <div className="space-y-2 text-sm text-foreground">
+                                            <div><span className="font-medium">Company:</span> {employeeDetails.companyName || 'N/A'}</div>
+                                            <div><span className="font-medium">Employment Type:</span> {employeeDetails.employmentType}</div>
+                                            <div><span className="font-medium">Joining Date:</span> {formatDate(employeeDetails.joiningDate, false, 'DD MMM YYYY')}</div>
+                                            <div><span className="font-medium">Office:</span> {employeeDetails.officeAddress || 'N/A'}</div>
+                                            <div><span className="font-medium">Supervisor:</span> {employeeDetails.reportingSupervisor || 'N/A'}</div>
+                                        </div>
+                                    </div>
 
-                                        <button
-                                            onClick={handleCloseModal}
-                                            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                                        >
-                                            <X className="w-4 h-4" />
-                                            <span>Close</span>
-                                        </button>
+                                    {/* Government Documents */}
+                                    <div className="space-y-3">
+                                        <h4 className="border-b border-border pb-2 font-semibold text-foreground">
+                                            Government Documents
+                                        </h4>
+                                        <div className="space-y-2 text-sm text-foreground">
+                                            <div><span className="font-medium">Aadhaar Number:</span> {employeeDetails.aadhaarNumber || 'N/A'}</div>
+                                            <div><span className="font-medium">PAN Number:</span> {employeeDetails.panNumber || 'N/A'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Banking Information */}
+                                    <div className="space-y-3">
+                                        <h4 className="border-b border-border pb-2 font-semibold text-foreground">
+                                            Banking Information
+                                        </h4>
+                                        <div className="space-y-2 text-sm text-foreground">
+                                            <div><span className="font-medium">Bank Name:</span> {employeeDetails.bankName || 'N/A'}</div>
+                                            <div><span className="font-medium">Account Number:</span> {employeeDetails.bankAccountNumber || 'N/A'}</div>
+                                            <div><span className="font-medium">IFSC Code:</span> {employeeDetails.bankIFSCCode || 'N/A'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Emergency Contact */}
+                                    <div className="space-y-3">
+                                        <h4 className="border-b border-border pb-2 font-semibold text-foreground">
+                                            Emergency Contact
+                                        </h4>
+                                        <div className="space-y-2 text-sm text-foreground">
+                                            <div><span className="font-medium">Name:</span> {employeeDetails.emergencyContactName || "N/A"}</div>
+                                            <div><span className="font-medium">Phone:</span> {employeeDetails.emergencyContactNumber || "N/A"}</div>
+                                        </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                                    Failed to load employee details
+
+                                {/* Action Buttons in Modal */}
+                                <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row">
+                                    <Button
+                                        size="lg"
+                                        className="flex-1 sm:flex-initial"
+                                        disabled={activatingId === employeeDetails._id}
+                                        onClick={() => handleReactivateEmployee(employeeDetails._id, employeeDisplayName(employeeDetails))}
+                                    >
+                                        <RotateCcw className="size-4" aria-hidden="true" />
+                                        {activatingId === employeeDetails._id ? 'Reactivating…' : 'Reactivate Employee'}
+                                    </Button>
+
+                                    <Button
+                                        size="lg"
+                                        variant="outline"
+                                        className="flex-1 sm:flex-initial"
+                                        onClick={handleCloseModal}
+                                    >
+                                        Close
+                                    </Button>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="py-12 text-center text-muted-foreground">
+                                Failed to load employee details
+                            </div>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
