@@ -32,14 +32,14 @@ export function DirectoryToolbar({
                         onChange={(e) => filters.setSearch(e.target.value)}
                         placeholder="Search employees…"
                         aria-label="Search employees"
-                        className="pl-9 pr-9"
+                        className="pl-9 pr-11"
                     />
                     {filters.search && (
                         <button
                             type="button"
                             onClick={() => filters.setSearch('')}
                             aria-label="Clear search"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             <X className="size-4" />
                         </button>
@@ -49,7 +49,7 @@ export function DirectoryToolbar({
                 <Button
                     variant="outline"
                     size="icon"
-                    className="relative lg:hidden"
+                    className="relative size-11 shrink-0 lg:size-9 lg:hidden"
                     onClick={() => setSheetOpen(true)}
                     aria-label={`Filters${filters.activeFilterCount ? `, ${filters.activeFilterCount} active` : ''}`}
                 >
