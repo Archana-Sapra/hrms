@@ -81,7 +81,7 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
                             <div className="mt-3 flex gap-2">
                                 <Button
                                     size="sm"
-                                    className="flex-1"
+                                    className="h-11 flex-1"
                                     onClick={() => setPendingAction({ leave, action: 'approved' })}
                                 >
                                     Approve
@@ -89,7 +89,7 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="flex-1"
+                                    className="h-11 flex-1"
                                     onClick={() => setPendingAction({ leave, action: 'rejected' })}
                                 >
                                     Reject
@@ -142,7 +142,12 @@ export default function LeaveSection({ leaves }: { leaves: Leave[] }) {
             <LeaveActionDialog
                 leave={pendingAction?.leave ?? null}
                 action={pendingAction?.action ?? null}
-                onOpenChange={(open) => { if (!open) setPendingAction(null); }}
+                onOpenChange={(open) => {
+                    // Ignore dismissal (X, Escape, overlay click) while the
+                    // mutation is in flight — the request completes regardless,
+                    // and closing early strips the pending feedback.
+                    if (!open && !updateStatus.isPending) setPendingAction(null);
+                }}
                 onConfirm={handleConfirm}
                 isPending={updateStatus.isPending}
             />

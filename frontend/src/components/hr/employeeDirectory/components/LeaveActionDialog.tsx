@@ -24,7 +24,12 @@ export function LeaveActionDialog({
 
     return (
         <Dialog open onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent
+                className="sm:max-w-md"
+                onEscapeKeyDown={(e) => { if (isPending) e.preventDefault(); }}
+                onPointerDownOutside={(e) => { if (isPending) e.preventDefault(); }}
+                onInteractOutside={(e) => { if (isPending) e.preventDefault(); }}
+            >
                 <DialogHeader>
                     <DialogTitle>{approving ? 'Approve leave request?' : 'Reject leave request?'}</DialogTitle>
                     <DialogDescription>
