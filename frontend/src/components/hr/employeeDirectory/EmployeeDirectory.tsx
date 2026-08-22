@@ -21,8 +21,9 @@ import { EmployeeList } from './components/EmployeeList';
 import { EmployeeProfile } from './components/EmployeeProfile';
 import { employeeDisplayName } from './employeeName';
 import InactiveEmployees from './InactiveEmployees';
-import { EditAttendanceModal } from './AttendanceSection';
-import type { Employee, AttendanceRecord } from '../../../types';
+import EditAttendanceModal from './attendance/EditAttendanceModal';
+import type { AttendanceRow } from './attendance/types';
+import type { Employee } from '../../../types';
 import type { UpdateEmployeeDto } from '../../../types';
 
 /** Fields validateField knows about. Anything else skips per-keystroke checks. */
@@ -30,15 +31,6 @@ type ValidatableField = keyof typeof employeeSchema.shape;
 
 function isValidatableField(name: string): name is ValidatableField {
     return name in employeeSchema.shape;
-}
-
-function monthRange() {
-    const today = new Date();
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { startDate: fmt(first), endDate: fmt(last) };
 }
 
 export default function EmployeeDirectory() {
@@ -52,10 +44,8 @@ export default function EmployeeDirectory() {
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const status = searchParams.get('status') === 'inactive' ? 'inactive' : 'active';
 
-    const [dateRange, setDateRange] = useState(monthRange);
     const [editModalOpen, setEditModalOpen] = useState(false);
-    const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
-    const [attendanceTrigger, setAttendanceTrigger] = useState(0);
+    const [editingRecord, setEditingRecord] = useState<AttendanceRow | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [draft, setDraft] = useState<Partial<Employee> | null>(null);
     const [draftFor, setDraftFor] = useState<string | null>(null);
@@ -276,10 +266,7 @@ export default function EmployeeDirectory() {
             errors={draftIsForThisEmployee ? errors : {}}
             isSaving={updateEmployee.isPending}
             isToggling={toggleStatus.isPending}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
             onEditAttendance={(record) => { setEditingRecord(record); setEditModalOpen(true); }}
-            attendanceTrigger={attendanceTrigger}
             onEdit={() => {
                 setIsEditing(true);
                 // Employee.address may be the legacy object form, but
@@ -325,13 +312,14 @@ export default function EmployeeDirectory() {
         </div>
     );
 
+    // No onUpdate / refresh counter: useUpdateAttendanceRecord invalidates the
+    // attendance query keys on success, so the list refetches on its own.
     const attendanceModal = (
         <EditAttendanceModal
             isOpen={editModalOpen}
-            onClose={() => setEditModalOpen(false)}
+            onClose={() => { setEditModalOpen(false); setEditingRecord(null); }}
             record={editingRecord}
             employeeProfile={employeeProfile ?? null}
-            onUpdate={() => { setAttendanceTrigger((n) => n + 1); setEditModalOpen(false); setEditingRecord(null); }}
         />
     );
 

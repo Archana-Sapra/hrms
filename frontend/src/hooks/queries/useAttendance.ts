@@ -251,13 +251,28 @@ export const useCheckOut = () => {
 };
 
 /**
+ * Payload the update endpoint actually accepts, which is wider than
+ * `Partial<AttendanceRecord>`:
+ *  - `checkIn` / `checkOut` may be `null` to clear a time (marking a day absent)
+ *  - `status` may carry values the read model derives rather than stores
+ *  - `employeeId` + `date` identify a day that has no stored record yet, which
+ *    is how an absent day is created via `recordId: 'new'`
+ * Typing it honestly here removes the casts every call site otherwise needs.
+ */
+export interface UpdateAttendancePayload extends Omit<Partial<AttendanceRecord>, 'checkIn' | 'checkOut' | 'status'> {
+  status?: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+}
+
+/**
  * Update attendance record (HR/Admin only)
  */
 export const useUpdateAttendanceRecord = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ recordId, updateData }: { recordId: string; updateData: Partial<AttendanceRecord> }) => {
+    mutationFn: async ({ recordId, updateData }: { recordId: string; updateData: UpdateAttendancePayload }) => {
       const { data } = await axiosInstance.put<ApiResponse<AttendanceRecord>>(
         API_ENDPOINTS.ATTENDANCE.UPDATE_RECORD(recordId),
         updateData

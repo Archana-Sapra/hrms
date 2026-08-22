@@ -4,12 +4,13 @@ import { ProfileHeader } from './ProfileHeader';
 import { ProfileFields } from './ProfileFields';
 import LeaveSection from '../LeaveSection';
 import DocumentManager from '../DocumentManager';
-import AttendanceSection from '../AttendanceSection';
-import type { Employee, Leave, AttendanceRecord } from '@/types';
+import AttendanceTable from '../attendance/AttendanceTable';
+import type { AttendanceRow } from '../attendance/types';
+import type { Employee, Leave } from '@/types';
 
 export function EmployeeProfile({
     employee, leaves, isLinked, isEditing, draft, errors, isSaving, isToggling,
-    dateRange, onDateRangeChange, onEditAttendance, attendanceTrigger,
+    onEditAttendance,
     onEdit, onCancel, onSave, onFieldChange, onToggleStatus, onUnlink, onBack, showBack,
 }: {
     employee: Employee;
@@ -20,10 +21,7 @@ export function EmployeeProfile({
     errors: Record<string, string>;
     isSaving: boolean;
     isToggling: boolean;
-    dateRange: { startDate: string; endDate: string };
-    onDateRangeChange: React.Dispatch<React.SetStateAction<{ startDate: string; endDate: string }>>;
-    onEditAttendance: (record: AttendanceRecord) => void;
-    attendanceTrigger: number;
+    onEditAttendance: (record: AttendanceRow) => void;
     onEdit: () => void;
     onCancel: () => void;
     onSave: () => void;
@@ -82,12 +80,12 @@ export function EmployeeProfile({
                 </TabsContent>
 
                 <TabsContent value="attendance" className="mt-4">
-                    <AttendanceSection
+                    {/* The date range is read from the URL by AttendanceTable
+                        itself, so it is no longer threaded from the orchestrator. */}
+                    <AttendanceTable
+                        employeeId={employee.employeeId}
                         employeeProfile={employee}
-                        dateRange={dateRange}
-                        onDateRangeChange={onDateRangeChange}
                         onEditAttendance={onEditAttendance}
-                        updateTrigger={attendanceTrigger}
                     />
                 </TabsContent>
 

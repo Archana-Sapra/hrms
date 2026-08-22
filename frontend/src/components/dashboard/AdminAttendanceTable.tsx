@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { CheckCircle, XCircle, Clock, Users, UserCheck, UserX, ChevronLeft, ChevronRight, Heart, Edit3, X, Save, Calendar } from 'lucide-react';
 import { formatTime, formatISTDate, getISTDateString, getMonthOptions, getAllDaysInMonth } from '@/utils/luxonUtils';
 import { useAdminAttendanceRange, useEffectiveSettings, useUpdateAttendanceRecord } from '@/hooks/queries';
+import type { UpdateAttendancePayload } from '@/hooks/queries/useAttendance';
 import {
   Dialog,
   DialogContent,
@@ -292,7 +293,7 @@ const EditAttendanceModal = memo(({ isOpen, onClose, record, employeeProfile }: 
     setError('');
 
     try {
-      const updateData: any = {
+      const updateData: UpdateAttendancePayload = {
         status: formData.status,
         checkIn: formData.checkIn ? new Date(formData.checkIn).toISOString() : null,
         checkOut: formData.checkOut ? new Date(formData.checkOut).toISOString() : null

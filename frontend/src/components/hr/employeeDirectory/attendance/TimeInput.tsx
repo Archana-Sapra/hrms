@@ -1,114 +1,116 @@
-import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 interface TimeInputProps {
     value: string;
     onChange: (value: string) => void;
     className?: string;
+    /** Labels the group for assistive tech, e.g. "Check in time". */
+    label: string;
+    describedById?: string;
+    invalid?: boolean;
 }
 
-const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, className }) => {
-    const [timeState, setTimeState] = useState({
-        hour: '',
-        minute: '',
-        period: 'AM'
-    });
+const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
-    // Convert datetime-local value to 12-hour format
-    useEffect(() => {
-        if (value) {
-            const date = new Date(value);
-            // Handle invalid date
-            if (isNaN(date.getTime())) {
-                setTimeState({ hour: '', minute: '', period: 'AM' });
-                return;
-            }
+type Parts = { hour: string; minute: string; period: 'AM' | 'PM' };
 
-            let hour = date.getHours();
-            const minute = date.getMinutes();
-            const period = hour >= 12 ? 'PM' : 'AM';
+/**
+ * Derive the 12-hour parts from the `datetime-local` string on every render.
+ * The previous build mirrored them into state and re-synced with an effect,
+ * which cascaded a render on each keystroke and could drift from the prop.
+ */
+function toParts(value: string): Parts {
+    if (!value) return { hour: '', minute: '', period: 'AM' };
+    const time = value.split('T')[1] ?? '';
+    const [rawHour, rawMinute] = time.split(':');
+    const h24 = Number(rawHour);
+    if (!Number.isFinite(h24) || rawMinute === undefined) {
+        return { hour: '', minute: '', period: 'AM' };
+    }
+    const period: 'AM' | 'PM' = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return {
+        hour: String(h12).padStart(2, '0'),
+        minute: rawMinute.slice(0, 2).padStart(2, '0'),
+        period,
+    };
+}
 
-            if (hour > 12) hour -= 12;
-            if (hour === 0) hour = 12;
+function toValue(parts: Parts, previous: string): string {
+    if (!parts.hour || !parts.minute) return '';
+    let h24 = Number(parts.hour) % 12;
+    if (parts.period === 'PM') h24 += 12;
+    // Preserve the day the caller seeded; only the time is edited here.
+    const baseDate = previous.split('T')[0] || new Date().toISOString().split('T')[0];
+    return `${baseDate}T${String(h24).padStart(2, '0')}:${parts.minute}`;
+}
 
-            setTimeState({
-                hour: hour.toString().padStart(2, '0'),
-                minute: minute.toString().padStart(2, '0'),
-                period
-            });
-        } else {
-            setTimeState({ hour: '', minute: '', period: 'AM' });
-        }
-    }, [value]);
+export default function TimeInput({
+    value, onChange, className = '', label, describedById, invalid,
+}: TimeInputProps) {
+    const parts = toParts(value);
 
-    const handleTimeChange = (field: 'hour' | 'minute' | 'period', newValue: string) => {
-        const newTimeState = { ...timeState, [field]: newValue };
-        setTimeState(newTimeState);
-
-        if (newTimeState.hour && newTimeState.minute) {
-            // Convert back to datetime-local format
-            let hour24 = parseInt(newTimeState.hour);
-            if (newTimeState.period === 'AM' && hour24 === 12) hour24 = 0;
-            if (newTimeState.period === 'PM' && hour24 !== 12) hour24 += 12;
-
-            const baseDate = value ? value.split('T')[0] : new Date().toISOString().split('T')[0];
-            const datetimeValue = `${baseDate}T${hour24.toString().padStart(2, '0')}:${newTimeState.minute}:00`;
-            onChange(datetimeValue);
-        } else if (!newTimeState.hour && !newTimeState.minute) {
-            // Clear the value if both hour and minute are empty
-            onChange('');
-        }
+    const update = (patch: Partial<Parts>) => {
+        onChange(toValue({ ...parts, ...patch }, value));
     };
 
-    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-    const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-
     return (
-        <div className={`flex gap-2 ${className}`}>
-            <select
-                value={timeState.hour}
-                onChange={(e) => handleTimeChange('hour', e.target.value)}
-                className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-            >
-                <option value="">HH</option>
-                {hours.map(hour => (
-                    <option key={hour} value={hour}>{hour}</option>
-                ))}
-            </select>
-            <span className="flex items-center text-slate-500">:</span>
-            <select
-                value={timeState.minute}
-                onChange={(e) => handleTimeChange('minute', e.target.value)}
-                className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-            >
-                <option value="">MM</option>
-                {minutes.map(minute => (
-                    <option key={minute} value={minute}>{minute}</option>
-                ))}
-            </select>
-            <select
-                value={timeState.period}
-                onChange={(e) => handleTimeChange('period', e.target.value)}
-                className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-            >
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-            </select>
-            {value && (
-                <button
-                    type="button"
-                    onClick={() => {
-                        setTimeState({ hour: '', minute: '', period: 'AM' });
-                        onChange('');
-                    }}
-                    className="px-2 py-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                    title="Clear time"
+        <div role="group" aria-label={label} className={`flex items-center gap-2 ${className}`}>
+            <Select value={parts.hour} onValueChange={(v) => update({ hour: v })}>
+                <SelectTrigger
+                    className="h-11 flex-1 sm:h-9"
+                    aria-label={`${label}: hour`}
+                    aria-invalid={invalid}
+                    aria-describedby={describedById}
                 >
-                    <X className="w-4 h-4" />
-                </button>
+                    <SelectValue placeholder="HH" />
+                </SelectTrigger>
+                <SelectContent>
+                    {HOURS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                </SelectContent>
+            </Select>
+
+            <span aria-hidden="true" className="text-muted-foreground">:</span>
+
+            <Select value={parts.minute} onValueChange={(v) => update({ minute: v })}>
+                <SelectTrigger className="h-11 flex-1 sm:h-9" aria-label={`${label}: minute`}>
+                    <SelectValue placeholder="MM" />
+                </SelectTrigger>
+                <SelectContent>
+                    {MINUTES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+            </Select>
+
+            <Select
+                value={parts.period}
+                onValueChange={(v) => update({ period: v === 'PM' ? 'PM' : 'AM' })}
+            >
+                <SelectTrigger className="h-11 w-20 sm:h-9" aria-label={`${label}: AM or PM`}>
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="AM">AM</SelectItem>
+                    <SelectItem value="PM">PM</SelectItem>
+                </SelectContent>
+            </Select>
+
+            {value && (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-11 shrink-0 sm:size-9"
+                    onClick={() => onChange('')}
+                    aria-label={`Clear ${label.toLowerCase()}`}
+                >
+                    <X className="size-4" aria-hidden="true" />
+                </Button>
             )}
         </div>
     );
-};
-
-export default TimeInput;
+}

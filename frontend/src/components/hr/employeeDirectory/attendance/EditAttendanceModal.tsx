@@ -1,251 +1,157 @@
-import React, { useEffect, useState, FormEvent } from 'react';
-import { Edit3, Save } from 'lucide-react';
-import { useUpdateAttendanceRecord } from '../../../../hooks/queries';
+import { useState } from 'react';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
-import TimeInput from './TimeInput';
-import { AttendanceRecord, Employee } from '../../../../types';
+import { Button } from '@/components/ui/button';
+import { useUpdateAttendanceRecord } from '@/hooks/queries';
+import { AttendanceFormFields } from './components/AttendanceFormFields';
+import { localDateKey } from './types';
+import type { AttendanceFormValues, AttendanceRow } from './types';
+import type { Employee } from '@/types';
 
-interface EditAttendanceModalProps {
+/** `datetime-local` value for a stored instant, on the record's own day. */
+function toFormTime(dayKey: string, iso: string | undefined, fallback: string): string {
+    if (!iso) return fallback ? `${dayKey}T${fallback}` : '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return `${dayKey}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function seedValues(record: AttendanceRow): AttendanceFormValues {
+    const dayKey = localDateKey(new Date(record.date));
+    // Only present/absent/half-day are editable; derived statuses (weekend,
+    // holiday, leave) fall back to present so the select has a valid value.
+    const editable = ['present', 'absent', 'half-day'].includes(record.status)
+        ? record.status
+        : 'present';
+    return {
+        status: editable,
+        checkIn: toFormTime(dayKey, record.checkIn, '09:30'),
+        checkOut: toFormTime(dayKey, record.checkOut, '17:30'),
+    };
+}
+
+export default function EditAttendanceModal({
+    isOpen, onClose, record, employeeProfile,
+}: {
     isOpen: boolean;
     onClose: () => void;
-    record: AttendanceRecord | null;
+    record: AttendanceRow | null;
     employeeProfile: Employee | null;
-    onUpdate: () => void;
-}
-
-interface FormData {
-    status: string;
-    checkIn: string;
-    checkOut: string;
-}
-
-const EditAttendanceModal: React.FC<EditAttendanceModalProps> = ({ isOpen, onClose, record, employeeProfile, onUpdate }) => {
-    const [formData, setFormData] = useState<FormData>({
-        status: '',
-        checkIn: '',
-        checkOut: ''
+}) {
+    const updateAttendance = useUpdateAttendanceRecord();
+    const [values, setValues] = useState<AttendanceFormValues>({
+        status: 'present', checkIn: '', checkOut: '',
     });
     const [error, setError] = useState('');
-    const updateAttendanceMutation = useUpdateAttendanceRecord();
 
-    useEffect(() => {
+    // Re-seed when a different record is opened, during render instead of in an
+    // effect — an effect would cascade a second render every time the modal
+    // opens, and `set-state-in-effect` flags exactly this pattern.
+    const [seededFor, setSeededFor] = useState<string | null>(null);
+    const recordKey = isOpen && record ? record.date : null;
+    if (recordKey !== seededFor) {
+        setSeededFor(recordKey);
         if (record && isOpen) {
-            const formatTimeForInput = (date: string | undefined, defaultTime: string) => {
-                if (!date && !defaultTime) return '';
-
-                // Use the record date to ensure we're working with the correct date
-                const recordDate = new Date(record.date);
-                // Format as YYYY-MM-DD using local time components to avoid timezone issues
-                const year = recordDate.getFullYear();
-                const month = String(recordDate.getMonth() + 1).padStart(2, '0');
-                const day = String(recordDate.getDate()).padStart(2, '0');
-                const baseDate = `${year}-${month}-${day}`;
-
-                if (date) {
-                    // Convert existing date to local time for display
-                    const existingDate = new Date(date);
-                    const hours = existingDate.getHours().toString().padStart(2, '0');
-                    const minutes = existingDate.getMinutes().toString().padStart(2, '0');
-                    return `${baseDate}T${hours}:${minutes}`;
-                } else if (defaultTime) {
-                    return `${baseDate}T${defaultTime}`;
-                }
-                return '';
-            };
-
-            setFormData({
-                status: record.status || 'present',
-                checkIn: formatTimeForInput(record.checkIn, '09:30'),
-                checkOut: formatTimeForInput(record.checkOut, '17:30')
-            });
+            setValues(seedValues(record));
             setError('');
         }
-    }, [record, isOpen]);
+    }
 
-    const handleStatusChange = (status: string) => {
-        const recordDate = new Date(record?.date || new Date());
-        // Format as YYYY-MM-DD using local time components to avoid timezone issues
-        const year = recordDate.getFullYear();
-        const month = String(recordDate.getMonth() + 1).padStart(2, '0');
-        const day = String(recordDate.getDate()).padStart(2, '0');
-        const baseDate = `${year}-${month}-${day}`;
+    if (!record) return null;
 
-        setFormData(prev => {
-            const newData = { ...prev, status };
+    const dayKey = localDateKey(new Date(record.date));
 
-            // Only auto-fill times if they are currently empty or for specific status changes
-            switch (status) {
-                case 'present':
-                    if (!newData.checkIn) newData.checkIn = `${baseDate}T09:30`;
-                    if (!newData.checkOut) newData.checkOut = `${baseDate}T17:30`;
-                    break;
-                case 'half-day':
-                    if (!newData.checkIn) newData.checkIn = `${baseDate}T09:30`;
-                    // Always set checkout for half-day
-                    newData.checkOut = `${baseDate}T13:30`;
-                    break;
-                case 'absent':
-                    newData.checkIn = '';
-                    newData.checkOut = '';
-                    break;
-            }
+    const handleSubmit = () => {
+        const absent = values.status === 'absent';
 
-            return newData;
-        });
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+        if (!absent && !values.checkIn) {
+            setError('Check-in time is required unless the status is absent.');
+            return;
+        }
         setError('');
 
-        if (!record) return;
-
-        // TODO: Define strict type for updateData in Mutation or local interface
-        const updateData: any = {
-            status: formData.status,
-            checkIn: formData.checkIn ? new Date(formData.checkIn).toISOString() : null,
-            checkOut: formData.checkOut ? new Date(formData.checkOut).toISOString() : null
+        const toIso = (v: string): string | null => {
+            if (!v) return null;
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? null : d.toISOString();
         };
 
-        // For non-absent status, ensure we have valid times
-        if (formData.status !== 'absent') {
-            if (!updateData.checkIn) {
-                setError('Check-in time is required for non-absent status');
-                return;
-            }
-            // For present status, if no checkout is provided, keep the existing one or set null
-            if (formData.status === 'present' && !updateData.checkOut && record?.checkOut) {
-                updateData.checkOut = new Date(record.checkOut).toISOString();
-            }
-        }
-
-        // For records that don't exist (absent days), include employee and date info
-        if (!record._id) {
-            updateData.employeeId = employeeProfile?.employeeId;
-            updateData.date = record.date;
-        }
-
-        const recordId = record._id || 'new';
-
-        updateAttendanceMutation.mutate(
-            { recordId, updateData },
+        updateAttendance.mutate(
             {
-                onSuccess: () => {
-                    onUpdate();
-                    onClose();
+                recordId: record._id || 'new',
+                updateData: {
+                    status: values.status,
+                    checkIn: absent ? null : toIso(values.checkIn),
+                    checkOut: absent ? null : toIso(values.checkOut),
+                    // An absent day has no stored record, so identify the day
+                    // the row stands for.
+                    ...(record._id
+                        ? {}
+                        : { employeeId: employeeProfile?.employeeId, date: record.date }),
                 },
-                onError: (err: any) => {
-                    setError(err.message || 'Failed to update attendance record');
-                }
-            }
+            },
+            {
+                // No manual refetch: the mutation invalidates the attendance
+                // keys on success, which refreshes the list on its own.
+                onSuccess: onClose,
+                onError: (err: Error) =>
+                    setError(err.message || 'Failed to update the attendance record.'),
+            },
         );
     };
 
+    const displayDate = new Date(record.date);
+    const employeeName = [employeeProfile?.firstName, employeeProfile?.lastName]
+        .filter(Boolean).join(' ');
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-md gap-0 p-0">
-                <DialogHeader className="p-6 pr-14 border-b border-slate-200 dark:border-slate-700 text-left">
-                    <DialogTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                        <Edit3 className="w-5 h-5 text-cyan-600" />
-                        Edit Attendance
-                    </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        Edit the check-in and check-out times for this attendance record.
+        <Dialog
+            open={isOpen}
+            onOpenChange={(next) => {
+                if (!next && updateAttendance.isPending) return;
+                if (!next) onClose();
+            }}
+        >
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit attendance</DialogTitle>
+                    <DialogDescription>
+                        {isNaN(displayDate.getTime())
+                            ? 'Update this attendance record.'
+                            : displayDate.toLocaleDateString('en-GB', {
+                                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                            })}
+                        {employeeName ? ` · ${employeeName}` : ''}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {error && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
-                            {error}
-                        </div>
-                    )}
+                <AttendanceFormFields
+                    values={values}
+                    onChange={setValues}
+                    baseDate={dayKey}
+                    error={error}
+                    errorId="edit-attendance-error"
+                />
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Date: {record ? new Date(record.date).toLocaleDateString() : ''}
-                        </label>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Employee: {employeeProfile?.firstName} {employeeProfile?.lastName}
-                        </label>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Status
-                        </label>
-                        <select
-                            value={formData.status}
-                            onChange={(e) => handleStatusChange(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                            required
-                        >
-                            <option value="present">Present</option>
-                            <option value="absent">Absent</option>
-                            <option value="half-day">Half Day</option>
-                        </select>
-                    </div>
-
-                    {formData.status !== 'absent' && (
-                        <>
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Check In Time
-                                </label>
-                                <TimeInput
-                                    value={formData.checkIn}
-                                    onChange={(value) => setFormData(prev => ({ ...prev, checkIn: value }))}
-                                    className="w-full"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Check Out Time
-                                </label>
-                                <TimeInput
-                                    value={formData.checkOut}
-                                    onChange={(value) => setFormData(prev => ({ ...prev, checkOut: value }))}
-                                    className="w-full"
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    <div className="flex gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={updateAttendanceMutation.isPending}
-                            className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            {updateAttendanceMutation.isPending ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            ) : (
-                                <>
-                                    <Save className="w-4 h-4" />
-                                    Save Changes
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button
+                        variant="outline"
+                        className="h-11 sm:h-9"
+                        onClick={onClose}
+                        disabled={updateAttendance.isPending}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        className="h-11 sm:h-9"
+                        onClick={handleSubmit}
+                        disabled={updateAttendance.isPending}
+                    >
+                        {updateAttendance.isPending ? 'Saving…' : 'Save changes'}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
-};
-
-export default EditAttendanceModal;
+}
