@@ -1,53 +1,75 @@
 import { UserPlus, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /**
- * Directory chrome, split so desktop and mobile can place the pieces
- * differently.
+ * Directory chrome.
  *
- * On desktop the status tabs and actions both live inside the list rail — a
- * full-width header row spanning both panes left a dead strip above the detail
- * pane with the buttons stranded far right.
+ * The rail previously stacked four full-width bands — actions, status tabs,
+ * search, then chips and a count — so roughly 200px of a 360px-wide rail was
+ * consumed before the first employee row. The list is the subject of the page;
+ * it now starts as close to the top as the controls allow.
+ *
+ * The pieces stay split so desktop and mobile can place them differently.
  */
 
 /**
- * One primary action plus a compact icon action, rather than two equal buttons.
+ * Title, live count and actions on a single row.
  *
- * Adding an employee is routine; linking a user account is occasional. Giving
- * them equal weight made a 360px rail feel cramped and set two actions
- * competing directly above the search field. Link stays one tap away as an
- * icon — a dropdown would have cost two taps for a single item.
+ * "Add employee" was a full-width filled button — the loudest element on
+ * screen for a routine action, competing with the employee names. Both actions
+ * are now icon buttons of equal, secondary weight, with accessible names.
  */
 export function DirectoryActions({
-    onAdd, onLink,
+    onAdd, onLink, count,
 }: {
     onAdd: () => void;
     onLink: () => void;
+    count?: number;
 }) {
     return (
-        <div className="flex items-stretch gap-2">
-            <Button size="sm" className="h-9 flex-1" onClick={onAdd}>
-                <UserPlus className="mr-2 size-4" aria-hidden="true" />
-                Add employee
-            </Button>
+        <div className="flex items-center gap-2">
+            <h1 className="text-sm font-semibold text-foreground">Employees</h1>
+            {count !== undefined && (
+                <span className="text-sm tabular-nums text-muted-foreground">{count}</span>
+            )}
 
             {/* `title` gives the hover tooltip, `aria-label` the accessible
                 name — a chain icon alone does not say "link a user account". */}
-            <Button
-                variant="outline"
-                size="icon"
-                className="size-9 shrink-0"
-                onClick={onLink}
-                title="Link user account"
-                aria-label="Link user account"
-            >
-                <Link2 className="size-4" aria-hidden="true" />
-            </Button>
+            <div className="ml-auto flex items-center gap-1.5">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-9"
+                    onClick={onLink}
+                    title="Link user account"
+                    aria-label="Link user account"
+                >
+                    <Link2 className="size-4" aria-hidden="true" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-9"
+                    onClick={onAdd}
+                    title="Add employee"
+                    aria-label="Add employee"
+                >
+                    <UserPlus className="size-4" aria-hidden="true" />
+                </Button>
+            </div>
         </div>
     );
 }
 
+/**
+ * Active/Inactive as a compact segmented control.
+ *
+ * This was a full-width two-column TabsList, a whole band spending 44px to
+ * express one binary. It is not a tab set in the ARIA sense either — the two
+ * states swap the queried dataset rather than toggling panels within a page —
+ * so radios in a group carry the meaning more honestly and announce as
+ * "Active, 1 of 2" rather than as tabs with no controlled tabpanel.
+ */
 export function DirectoryStatusTabs({
     status, onStatusChange, className = '',
 }: {
@@ -55,45 +77,49 @@ export function DirectoryStatusTabs({
     onStatusChange: (s: 'active' | 'inactive') => void;
     className?: string;
 }) {
+    const options: Array<{ value: 'active' | 'inactive'; label: string }> = [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' },
+    ];
+
     return (
-        <Tabs
-            value={status}
-            onValueChange={(v) => onStatusChange(v as 'active' | 'inactive')}
-            className={className}
+        <div
+            role="radiogroup"
+            aria-label="Employee status"
+            className={`inline-flex shrink-0 items-center rounded-md bg-muted p-0.5 ${className}`}
         >
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="inactive">Inactive</TabsTrigger>
-            </TabsList>
-        </Tabs>
+            {options.map((o) => (
+                <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={status === o.value}
+                    onClick={() => onStatusChange(o.value)}
+                    className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        status === o.value
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                    {o.label}
+                </button>
+            ))}
+        </div>
     );
 }
 
-/** Mobile header: actions and tabs stacked. No page title — the bottom nav
- *  already says where you are, and the heading only cost vertical space. */
+/** Mobile header. No page title of its own — the bottom nav already says where
+ *  you are, so the title row carries the count and actions instead. */
 export function DirectoryHeader({
-    status, onStatusChange, onAdd, onLink,
+    onAdd, onLink, count,
 }: {
-    status: 'active' | 'inactive';
-    onStatusChange: (s: 'active' | 'inactive') => void;
     onAdd: () => void;
     onLink: () => void;
+    count?: number;
 }) {
     return (
-        <header className="border-b border-border bg-card px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-                <h1 className="text-base font-semibold text-foreground">Employees</h1>
-                {/* shrink-0 so the split button keeps its intrinsic width here
-                    instead of stretching as it does in the desktop rail. */}
-                <div className="shrink-0">
-                    <DirectoryActions onAdd={onAdd} onLink={onLink} />
-                </div>
-            </div>
-            <DirectoryStatusTabs
-                status={status}
-                onStatusChange={onStatusChange}
-                className="mt-3"
-            />
+        <header className="border-b border-border bg-card px-4 py-2.5">
+            <DirectoryActions onAdd={onAdd} onLink={onLink} count={count} />
         </header>
     );
 }

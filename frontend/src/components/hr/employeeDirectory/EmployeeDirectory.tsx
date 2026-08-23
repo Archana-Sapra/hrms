@@ -205,15 +205,19 @@ export default function EmployeeDirectory() {
         });
     };
 
+    // The inactive view is a separate dataset, so it keeps its own header. The
+    // status control travels with it rather than living only in the active
+    // list's toolbar, otherwise there would be no way back to Active.
     if (status === 'inactive') {
         return (
             <div className="min-h-full bg-background">
                 <DirectoryHeader
-                    status={status}
-                    onStatusChange={setStatus}
                     onAdd={() => navigate('/employees/add')}
                     onLink={() => navigate('/employees/link')}
                 />
+                <div className="border-b border-border bg-card px-4 pb-2.5">
+                    <DirectoryStatusTabs status={status} onStatusChange={setStatus} />
+                </div>
                 <div className="p-4"><InactiveEmployees /></div>
             </div>
         );
@@ -221,18 +225,23 @@ export default function EmployeeDirectory() {
 
     const listPane = (
         <div className="flex min-h-0 flex-col lg:w-90 lg:shrink-0 lg:border-r lg:border-border">
-            {/* Desktop only: status switch AND page actions live in the rail,
-                not in a full-width header. A header spanning both panes left a
-                dead strip above the detail pane with the buttons stranded far
-                right; keeping them here means no row is half empty. */}
-            <div className="hidden shrink-0 flex-col gap-2.5 border-b border-border bg-card px-4 py-3 lg:flex">
+            {/* Desktop only: page actions live in the rail, not in a full-width
+                header. A header spanning both panes left a dead strip above the
+                detail pane with the buttons stranded far right. The status
+                switch now sits in the toolbar beside the result count. */}
+            <div className="hidden shrink-0 border-b border-border bg-card px-4 py-2.5 lg:block">
                 <DirectoryActions
                     onAdd={() => navigate('/employees/add')}
                     onLink={() => navigate('/employees/link')}
+                    count={filters.total}
                 />
-                <DirectoryStatusTabs status={status} onStatusChange={setStatus} />
             </div>
-            <DirectoryToolbar filters={filters} departments={departments} />
+            <DirectoryToolbar
+                filters={filters}
+                departments={departments}
+                status={status}
+                onStatusChange={setStatus}
+            />
             <div className="flex-1 lg:overflow-y-auto">
                 <EmployeeList
                     employees={filters.visible}
@@ -241,6 +250,7 @@ export default function EmployeeDirectory() {
                     isLoading={isLoading}
                     error={employeesError ? 'Could not load employees.' : null}
                     hasSearch={!!filters.search || filters.activeFilterCount > 0}
+                    showDepartment={filters.department === 'all'}
                     onSelect={selectEmployee}
                     onClearSearch={() => { filters.setSearch(''); filters.clearFilters(); }}
                 />
@@ -336,10 +346,9 @@ export default function EmployeeDirectory() {
                 {selectedId ? profilePane : (
                     <>
                         <DirectoryHeader
-                            status={status}
-                            onStatusChange={setStatus}
                             onAdd={() => navigate('/employees/add')}
                             onLink={() => navigate('/employees/link')}
+                            count={filters.total}
                         />
                         {listPane}
                     </>

@@ -20,7 +20,8 @@ function ListSkeleton() {
 }
 
 export function EmployeeList({
-    employees, selectedId, linkedMap, isLoading, error, hasSearch, onSelect, onClearSearch,
+    employees, selectedId, linkedMap, isLoading, error, hasSearch,
+    showDepartment = true, onSelect, onClearSearch,
 }: {
     employees: Employee[];
     selectedId: string | null;
@@ -28,6 +29,7 @@ export function EmployeeList({
     isLoading: boolean;
     error: string | null;
     hasSearch: boolean;
+    showDepartment?: boolean;
     onSelect: (id: string) => void;
     onClearSearch: () => void;
 }) {
@@ -92,6 +94,7 @@ export function EmployeeList({
                     employee={e}
                     isSelected={selectedId === e._id}
                     isLinked={linkedMap.has(e.employeeId)}
+                    showDepartment={showDepartment}
                     onSelect={onSelect}
                 />
             ))}

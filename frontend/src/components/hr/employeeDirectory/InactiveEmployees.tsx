@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserX, Calendar, Mail, Phone, Building, RotateCcw, AlertTriangle, Eye } from 'lucide-react';
+import { UserCheck, Calendar, Mail, Phone, Building, RotateCcw, Eye } from 'lucide-react';
 import { useEmployees, useEmployee, useToggleEmployeeStatus } from '../../../hooks/queries';
 import { useToast } from '../../ui/toast';
 import { useConfirm } from '../../ui/confirm-dialog';
@@ -95,19 +95,14 @@ const InactiveEmployees: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="rounded-xl border border-border bg-card shadow-lg">
-                <div className="border-b border-border p-6">
-                    <div className="flex items-center space-x-3">
-                        <div className="rounded-lg bg-destructive/10 p-2">
-                            <UserX className="h-6 w-6 text-destructive" />
-                        </div>
-                        <h2 className="text-xl font-bold text-foreground">Inactive Employees</h2>
-                    </div>
+            <div className="rounded-xl border border-border bg-card">
+                <div className="border-b border-border px-4 py-3">
+                    <h2 className="text-sm font-semibold text-foreground">Inactive employees</h2>
                 </div>
-                <div className="p-6">
-                    <div className="animate-pulse space-y-4">
+                <div className="p-4">
+                    <div className="animate-pulse space-y-3" aria-hidden="true">
                         {[1, 2, 3].map((i) => (
-                            <div key={i} className="h-20 rounded-lg bg-muted"></div>
+                            <div key={i} className="h-16 rounded-lg bg-muted"></div>
                         ))}
                     </div>
                 </div>
@@ -116,38 +111,31 @@ const InactiveEmployees: React.FC = () => {
     }
 
     return (
-        <div className="rounded-xl border border-border bg-card shadow-lg">
-            <div className="border-b border-border p-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className="rounded-lg bg-destructive/10 p-2">
-                            <UserX className="h-6 w-6 text-destructive" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-foreground">Inactive Employees</h2>
-                            <p className="text-sm text-muted-foreground">
-                                {inactiveEmployees.length} deactivated employee{inactiveEmployees.length !== 1 ? 's' : ''}
-                            </p>
-                        </div>
-                    </div>
-
-                    {inactiveEmployees.length > 0 && (
-                        <div className="hidden items-center space-x-2 text-amber-600 sm:flex dark:text-amber-400">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="text-sm font-medium">Deactivated accounts</span>
-                        </div>
-                    )}
-                </div>
+        <div className="rounded-xl border border-border bg-card">
+            {/* Matches the Active view's header weight. This was a red icon
+                tile beside an xl bold heading, plus an amber "Deactivated
+                accounts" note restating what the heading, the count and the
+                selected tab all already said — three separate signals for one
+                fact, in a louder visual language than the rest of the
+                directory. */}
+            <div className="flex items-baseline gap-2 border-b border-border px-4 py-3">
+                <h2 className="text-sm font-semibold text-foreground">Inactive employees</h2>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                    {inactiveEmployees.length}
+                </span>
             </div>
 
-            <div className="p-6">
+            <div className="p-4">
                 {inactiveEmployees.length === 0 ? (
-                    <div className="py-12 text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
-                            <UserX className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <h3 className="mb-2 text-lg font-medium text-foreground">No Inactive Employees</h3>
-                        <p className="text-muted-foreground">All employees are currently active.</p>
+                    // Matches the Active list's empty state: a muted icon and
+                    // two lines. The green circle around a "user removed" icon
+                    // sent two conflicting signals at once.
+                    <div className="p-8 text-center">
+                        <UserCheck className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+                        <p className="mt-3 font-medium text-foreground">No inactive employees</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Everyone in the directory is currently active.
+                        </p>
                     </div>
                 ) : (
                     <>
@@ -204,6 +192,7 @@ const InactiveEmployees: React.FC = () => {
                                             </Button>
                                             <Button
                                                 size="sm"
+                                                variant="outline"
                                                 className="h-11 flex-1"
                                                 disabled={activatingId === employee._id}
                                                 onClick={() => handleReactivateEmployee(employee._id, name)}
@@ -261,8 +250,13 @@ const InactiveEmployees: React.FC = () => {
                                                             <Eye className="size-4" aria-hidden="true" />
                                                             View
                                                         </Button>
+                                                        {/* Outline, not primary: this repeats once per row, and
+                                                            a column of filled buttons made a rare, consequential
+                                                            action the loudest thing on the page. The confirm
+                                                            dialog is what guards it. */}
                                                         <Button
                                                             size="sm"
+                                                            variant="outline"
                                                             disabled={activatingId === employee._id}
                                                             onClick={() => handleReactivateEmployee(employee._id, name)}
                                                         >
