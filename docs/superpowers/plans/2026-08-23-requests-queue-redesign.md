@@ -22,6 +22,7 @@
 - **React Compiler is on.** Do not add `useMemo`/`useCallback`/`React.memo` for performance.
 - **Modals use `ui/dialog`.** Form controls use `ui/input`, `ui/select`, `ui/checkbox`, `ui/label` — style call sites with layout classes only.
 - **Commit after every task.** End messages with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
+- **Reuse what already exists; do not add variants or wrappers around working primitives.** Verified available and sufficient as-is: `bulkRequestStatusSchema` (`validators/request.schemas.ts:123`, currently unused — do not write a new bulk schema), `ui/checkbox` (Radix, supports `checked="indeterminate"` natively, so select-all needs no custom state), `ui/textarea` (has a `bare` variant already), `ui/dialog`, `ui/select`, `ui/badge`, `RequestDetailModal` (`dashboard/RequestDetailModal.tsx`, reused unmodified), and the expense `POST /bulk-status` endpoint. Only write something new where nothing equivalent exists.
 
 ## File Structure
 
@@ -834,7 +835,7 @@ Per the spec's table — each renders only its own fields:
 - `LeaveRow` — date range, `{numberOfDays}d`, truncated reason.
 - `RegularizationRow` — date, `in → out` via `formatTime`, truncated reason.
 - `ExpenseRow` — item, then **amount right-aligned with `tabular-nums`** and `₹{amount.toLocaleString('en-IN')}`.
-- `PasswordRow` — name and email. **The approve button must read "Approve & Set Password", not "Approve & Generate Token"** (the old copy at `hr/AdminRequestsPage.tsx:909`). No token is generated and nothing expires: the employee's proposed password is bcrypt-hashed at submission and assigned to `User.password` on approval. The old label described a flow that does not exist. Because the row is narrow, use "Approve" as the button label with `aria-label="Approve and set password"` — but never the word "Token".
+- `PasswordRow` — name and email. Buttons are plain **Approve** / **Reject**, same as every other type. Approve sets the employee's new password; reject leaves the old one in place. The old copy said "Approve & Generate Token" (`hr/AdminRequestsPage.tsx:909`) — there is no token and nothing expires, so that word must not reappear anywhere in the new UI.
 - `HelpRow` — subject, category chip, priority chip.
 
 Truncate with `truncate` on a `min-w-0` flex child; without `min-w-0` the flex item will not shrink and the row will overflow.
