@@ -1,19 +1,22 @@
-import type { CreateRegularizationInput, ReviewRegularizationInput, RequestListQuery } from '../validators/request.schemas.js';
+import type {
+  CreateRegularizationInput,
+  ReviewRegularizationInput,
+  RequestListQuery,
+  BulkRequestStatusInput,
+} from '../validators/request.schemas.js';
 import type { Response } from 'express';
 import mongoose from 'mongoose';
 import RegularizationRequest from '../models/Regularization.model.js';
 import User from '../models/User.model.js';
-import Attendance from '../models/Attendance.model.js';
 import Employee from '../models/Employee.model.js';
 import { DateTime } from 'luxon';
-import { getISTDayBoundaries, toIST, getISTNow } from '../utils/timezone.js';
-import { invalidateAttendanceCache, invalidateDashboardCache } from '../utils/cacheInvalidation.js';
-import { AttendanceBusinessService } from '../services/attendance/AttendanceBusinessService.js';
+import { toIST, getISTNow } from '../utils/timezone.js';
+import { applyRegularizationReview } from '../services/regularizationReviewService.js';
 import NotificationService from '../services/notificationService.js';
 import logger from '../utils/logger.js';
 import { getValidatedQuery } from '../middlewares/zodValidation.middleware.js';
+import { paramValue } from '../utils/helpers.js';
 import type { IAuthRequest } from '../types/index.js';
-import type { RegularizationStatus } from '../types/index.js';
 
 export const requestRegularization = async (req: IAuthRequest, res: Response): Promise<void> => {
   try {
@@ -219,7 +222,7 @@ export const reviewRegularization = async (req: IAuthRequest, res: Response): Pr
       return;
     }
 
-    const { id } = req.params;
+    const id = paramValue(req.params.id);
     const { status, reviewComment } = req.body as ReviewRegularizationInput;
 
     if (!id) {
@@ -227,182 +230,67 @@ export const reviewRegularization = async (req: IAuthRequest, res: Response): Pr
       return;
     }
 
-    if (!status) {
-      res.status(400).json({ message: 'Status is required' });
+    const outcome = await applyRegularizationReview({
+      id,
+      status,
+      reviewComment,
+      reviewerId: req.user._id,
+    });
+
+    if (!outcome.ok) {
+      const notFound = outcome.reason === 'Request not found' || outcome.reason.startsWith('Employee not found');
+      res.status(notFound ? 404 : 400).json({ message: outcome.reason });
       return;
     }
 
-    if (!['approved', 'rejected'].includes(status)) {
-      res.status(400).json({ message: `Invalid status: ${status}. Must be 'approved' or 'rejected'` });
-      return;
-    }
-
-    const reg = await RegularizationRequest.findById(id);
-    if (!reg) {
-      res.status(404).json({ message: 'Request not found' });
-      return;
-    }
-
-    if (reg.status !== 'pending') {
-      res.status(400).json({ message: 'Request already reviewed' });
-      return;
-    }
-
-    reg.status = status as RegularizationStatus;
-    reg.reviewedBy = req.user._id;
-    reg.reviewComment = reviewComment || '';
-    await reg.save();
-
-    if (status === 'approved') {
-      logger.info({ id, employeeId: reg.employeeId, date: reg.date }, 'Processing regularization approval');
-
-      const employeeDoc = await Employee.findOne({ employeeId: reg.employeeId });
-      if (!employeeDoc) {
-        logger.error({ employeeId: reg.employeeId }, 'Employee not found for regularization');
-        res.status(404).json({ message: 'Employee not found for regularization.' });
-        return;
-      }
-
-      const checkInTime = reg.requestedCheckIn;
-      const checkOutTime = reg.requestedCheckOut;
-
-      if (!checkInTime && !checkOutTime) {
-        logger.error('No check-in or check-out time provided');
-        res.status(400).json({ message: 'At least check-in or check-out time must be provided for regularization.' });
-        return;
-      }
-
-      if (checkInTime && checkOutTime && checkInTime >= checkOutTime) {
-        logger.error('Check-in time must be before check-out time');
-        res.status(400).json({ message: 'Check-in time must be before check-out time.' });
-        return;
-      }
-
-      logger.info({ checkIn: checkInTime, checkOut: checkOutTime, date: reg.date }, 'Regularization times');
-
-      const { startOfDay, endOfDay } = getISTDayBoundaries(reg.date);
-
-      let att = await Attendance.findOne({
-        employee: employeeDoc._id,
-        date: {
-          $gte: startOfDay.toJSDate(),
-          $lte: endOfDay.toJSDate()
-        }
-      });
-
-      if (!att && !checkInTime) {
-        logger.error('No existing attendance record and no check-in time provided');
-        res.status(400).json({
-          message: 'Check-in time is required when no existing attendance record exists for the date.'
-        });
-        return;
-      }
-
-      logger.info({
-        regularizationDate: reg.date,
-        startOfDay: startOfDay.toJSDate(),
-        endOfDay: endOfDay.toJSDate(),
-        foundAttendance: !!att,
-        attendanceDate: att?.date
-      }, 'Date matching');
-
-      if (!att) {
-        const attendanceData = {
-          employee: employeeDoc._id,
-          employeeName: `${employeeDoc.firstName} ${employeeDoc.lastName}`,
-          date: startOfDay.toJSDate(),
-          checkIn: checkInTime,
-          checkOut: checkOutTime,
-          status: 'present' as const,
-          comments: 'Regularized by HR/Admin',
-          reason: 'Regularized by HR/Admin'
-        };
-
-        logger.info({ attendanceData }, 'Creating new attendance record');
-        att = await Attendance.create(attendanceData);
-        logger.info({ id: att._id }, 'Created attendance record');
-      } else {
-        logger.info({ id: att._id }, 'Updating existing attendance record');
-
-        if (checkInTime) {
-          att.checkIn = checkInTime;
-          logger.info({ checkIn: checkInTime }, 'Updated check-in');
-        }
-
-        if (checkOutTime) {
-          att.checkOut = checkOutTime;
-          logger.info({ checkOut: checkOutTime }, 'Updated check-out');
-        }
-
-        att.reason = 'Regularized by HR/Admin';
-        att.comments = 'Regularized by HR/Admin';
-
-        if (!att.employeeName) {
-          att.employeeName = `${employeeDoc.firstName} ${employeeDoc.lastName}`;
-        }
-
-        await att.save();
-        logger.info('Updated attendance record saved');
-      }
-
-      if (att.checkIn && att.checkOut) {
-        const statusResult = await AttendanceBusinessService.calculateFinalStatus(att.checkIn, att.checkOut);
-
-        att.status = statusResult.status;
-        att.workHours = statusResult.workHours;
-
-        await att.save();
-        logger.info({ status: att.status, workHours: att.workHours, flags: statusResult.flags }, 'Final attendance status');
-      } else if (att.checkIn && !att.checkOut) {
-        const statusResult = await AttendanceBusinessService.determineAttendanceStatus(att.checkIn, null);
-        att.status = statusResult.status;
-
-        await att.save();
-        logger.info({ status: att.status, flags: statusResult.flags }, 'Attendance updated with check-in only');
-      }
-
-      try {
-        invalidateAttendanceCache(employeeDoc.employeeId);
-        invalidateDashboardCache();
-      } catch (cacheError) {
-        const err = cacheError instanceof Error ? cacheError : new Error('Unknown error');
-        logger.error({ err }, 'Error invalidating cache (non-critical)');
-      }
-    }
-
-    try {
-      if (reg.employeeId) {
-        NotificationService.notifyEmployee(reg.employeeId, 'regularization_status_update', {
-          status,
-          date: reg.date ? reg.date.toDateString() : 'Unknown date',
-          checkIn: reg.requestedCheckIn ? reg.requestedCheckIn.toLocaleString() : 'Not specified',
-          checkOut: reg.requestedCheckOut ? reg.requestedCheckOut.toLocaleString() : 'Not specified',
-          reason: reg.reason || 'No reason provided',
-          comment: reviewComment || 'No comment'
-        }).catch((error: unknown) => {
-          const err = error instanceof Error ? error : new Error('Unknown error');
-          logger.error({ err }, 'Failed to send regularization status notification');
-        });
-      }
-    } catch (notificationError) {
-      const err = notificationError instanceof Error ? notificationError : new Error('Unknown error');
-      logger.error({ err }, 'Error in notification service (non-critical)');
-    }
-
-    res.json({ success: true, message: `Request ${status}`, reg });
+    res.json({ success: true, message: `Request ${status}` });
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Unknown error');
-    logger.error({
-      err: error,
-      stack: error.stack,
-      requestId: req.params.id,
-      status: req.body.status,
-      reviewComment: req.body.reviewComment
-    }, 'Detailed error in reviewRegularization');
-    res.status(500).json({
-      message: 'Failed to review request',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    logger.error({ err: error, requestId: req.params.id }, 'Error in reviewRegularization');
+    res.status(500).json({ message: 'Failed to review request', error: error.message });
+  }
+};
+
+export const bulkReviewRegularizations = async (req: IAuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || (req.user.role !== 'hr' && req.user.role !== 'admin')) {
+      res.status(403).json({ message: 'Not authorized' });
+      return;
+    }
+
+    const { ids, status, reviewComment } = req.body as BulkRequestStatusInput;
+
+    const failures: { id: string; reason: string }[] = [];
+    let updatedCount = 0;
+
+    // Sequential: each approval performs several dependent writes plus cache
+    // invalidation, and a wide parallel fan-out exhausts the connection pool.
+    for (const id of ids) {
+      try {
+        const outcome = await applyRegularizationReview({
+          id,
+          status,
+          reviewComment,
+          reviewerId: req.user._id,
+        });
+        if (outcome.ok) updatedCount += 1;
+        else failures.push({ id: outcome.id, reason: outcome.reason });
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Unknown error');
+        logger.error({ err: error, id }, 'Bulk regularization item failed');
+        failures.push({ id, reason: error.message });
+      }
+    }
+
+    logger.info(
+      { requested: ids.length, updatedCount, failedCount: failures.length },
+      'Bulk regularization review complete'
+    );
+
+    res.json({ success: true, updatedCount, failedCount: failures.length, failures });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    logger.error({ err: error }, 'Error in bulkReviewRegularizations');
+    res.status(500).json({ message: 'Failed to review requests', error: error.message });
   }
 };

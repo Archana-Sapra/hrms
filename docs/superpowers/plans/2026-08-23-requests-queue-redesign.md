@@ -21,7 +21,7 @@
 - **Tailwind v4 CSS-first.** Style from `@theme` tokens (`bg-card`, `text-muted-foreground`, `border-border`, `text-destructive`) — never raw `bg-white dark:bg-slate-800` or `text-gray-500`. There is no `tailwind.config.js`.
 - **React Compiler is on.** Do not add `useMemo`/`useCallback`/`React.memo` for performance.
 - **Modals use `ui/dialog`.** Form controls use `ui/input`, `ui/select`, `ui/checkbox`, `ui/label` — style call sites with layout classes only.
-- **Commit after every task.** End messages with `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
+- **Commit after every task.** Never add a `Co-Authored-By` trailer or a generated-with footer (see CLAUDE.md → Commits).
 - **Reuse what already exists; do not add variants or wrappers around working primitives.** Verified available and sufficient as-is: `bulkRequestStatusSchema` (`validators/request.schemas.ts:123`, currently unused — do not write a new bulk schema), `ui/checkbox` (Radix, supports `checked="indeterminate"` natively, so select-all needs no custom state), `ui/textarea` (has a `bare` variant already), `ui/dialog`, `ui/select`, `ui/badge`, `RequestDetailModal` (`dashboard/RequestDetailModal.tsx`, reused unmodified), and the expense `POST /bulk-status` endpoint. Only write something new where nothing equivalent exists.
 
 ## File Structure
@@ -259,9 +259,7 @@ git commit -m "refactor(regularization): extract review side effects into a shar
 
 Approving a regularization creates or mutates an Attendance record and
 recomputes status and work hours, so a bulk endpoint cannot be an
-updateMany. Extracting the logic lets single and bulk share it.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+updateMany. Extracting the logic lets single and bulk share it."
 ```
 
 ---
@@ -366,9 +364,7 @@ git commit -m "feat(regularization): add bulk-review endpoint
 
 Loops the shared review service sequentially and returns per-item
 results, so a partially failed batch reports which items failed.
-Reuses the previously unused bulkRequestStatusSchema.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+Reuses the previously unused bulkRequestStatusSchema."
 ```
 
 ---
@@ -467,9 +463,7 @@ git add backend/controllers/leave.controllers.ts backend/routes/leave.ts
 git commit -m "feat(leave): add bulk-status endpoint
 
 Leave approval has no side effects, so this is an updateMany mirroring
-the expense bulk endpoint, with notifications in a background loop.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+the expense bulk endpoint, with notifications in a background loop."
 ```
 
 ---
@@ -542,9 +536,7 @@ git commit -m "fix(requests): validate expense query, drop dead password statuse
 getAllExpenses was the only admin list route without validateQuery.
 The expired and completed password statuses are never set anywhere, so
 they were two filter options that could never match a row. HR can now
-supply a rejection reason instead of a hardcoded string.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+supply a rejection reason instead of a hardcoded string."
 ```
 
 ---
@@ -660,9 +652,7 @@ Expected: still **76** errors, not more.
 
 ```bash
 git add frontend/src/lib/apiEndpoints.ts frontend/src/hooks/queries/useRegularizations.ts frontend/src/hooks/queries/useLeaves.ts
-git commit -m "feat(queries): add bulk review hooks for regularization and leave
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git commit -m "feat(queries): add bulk review hooks for regularization and leave"
 ```
 
 ---
@@ -787,9 +777,7 @@ git commit -m "feat(requests): add typed request union and queue hook
 
 Replaces the title/description flattening with a discriminated union
 that keeps amount as a number, numberOfDays, priority and the
-check-in/out times, so rows can render and sort real fields.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+check-in/out times, so rows can render and sort real fields."
 ```
 
 ---
@@ -849,9 +837,7 @@ Expected: typecheck **76**, lint **118 (105 errors, 13 warnings)** or lower.
 
 ```bash
 git add frontend/src/components/hr/requests/components/
-git commit -m "feat(requests): add dense row components per request type
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git commit -m "feat(requests): add dense row components per request type"
 ```
 
 ---
@@ -896,9 +882,7 @@ Expected: no increase over baseline.
 
 ```bash
 git add frontend/src/components/hr/requests/components/
-git commit -m "feat(requests): add tabs, toolbar with sort, and reject reason dialog
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git commit -m "feat(requests): add tabs, toolbar with sort, and reject reason dialog"
 ```
 
 ---
@@ -929,9 +913,7 @@ A `ui/checkbox` that selects every **bulk-eligible row in the current filtered v
 
 ```bash
 git add frontend/src/components/hr/requests/components/BulkActionBar.tsx
-git commit -m "feat(requests): add bulk action bar with select-all
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git commit -m "feat(requests): add bulk action bar with select-all"
 ```
 
 ---
@@ -996,9 +978,7 @@ git commit -m "feat(requests): wire the new dense queue page
 
 One-click approve, select-all bulk, oldest-first default sort, and
 honest partial-failure reporting. Replaces the five-interaction inline
-edit form with direct decisions.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+edit form with direct decisions."
 ```
 
 ---
@@ -1026,9 +1006,7 @@ Expected: all pass; both counts should now be **below** baseline, since a 1,003-
 - [ ] **Step 3: Commit**
 
 ```bash
-git commit -m "refactor(requests): remove the superseded card-feed page
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git commit -m "refactor(requests): remove the superseded card-feed page"
 ```
 
 ---
@@ -1068,9 +1046,7 @@ CLAUDE.md claims typecheck 102 and lint 180. Measured at `10197fa` they were **7
 git add CLAUDE.md
 git commit -m "docs: correct stale typecheck and lint baselines
 
-Measured, not inherited: the documented 102/180 were stale.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+Measured, not inherited: the documented 102/180 were stale."
 ```
 
 ---

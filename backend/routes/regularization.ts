@@ -1,11 +1,18 @@
 import express, { type Router } from "express";
-import { requestRegularization, getMyRegularizations, getAllRegularizations, reviewRegularization } from "../controllers/regularization.controllers.js";
+import {
+  requestRegularization,
+  getMyRegularizations,
+  getAllRegularizations,
+  reviewRegularization,
+  bulkReviewRegularizations,
+} from "../controllers/regularization.controllers.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 import { validateBody, validateQuery } from "../middlewares/zodValidation.middleware.js";
 import {
   createRegularizationSchema,
   reviewRegularizationSchema,
   requestListQuerySchema,
+  bulkRequestStatusSchema,
 } from "../validators/request.schemas.js";
 import type { IAuthRequest } from "../types/index.js";
 import type { Response } from "express";
@@ -30,6 +37,9 @@ router.get("/", authMiddleware(["employee", "hr", "admin"]), validateQuery(reque
 
 // HR/Admin: get all regularization requests
 router.get("/all", authMiddleware(["hr", "admin"]), validateQuery(requestListQuerySchema), getAllRegularizations);
+
+// Must precede /:id/review, or the param route swallows "bulk-review".
+router.post("/bulk-review", authMiddleware(["hr", "admin"]), validateBody(bulkRequestStatusSchema), bulkReviewRegularizations);
 
 // HR/Admin: review (approve/reject) a request
 router.post("/:id/review", authMiddleware(["hr", "admin"]), validateBody(reviewRegularizationSchema), reviewRegularization);

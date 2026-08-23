@@ -162,6 +162,11 @@ warranted, one line beats five.
 **Frontend**: query hook (+ key, + endpoint) → component → route in `main.tsx`,
 wrapped in `RequireRole` if admin/HR-only → `pnpm typecheck` and `pnpm lint`.
 
+## Commits
+
+**Never add a `Co-Authored-By` trailer.** No AI co-author, no
+`Generated with` footer — the commit message ends at its last line of prose.
+
 ## Deployment
 
 Frontend on Vercel, backend on Railway. CORS origins from
