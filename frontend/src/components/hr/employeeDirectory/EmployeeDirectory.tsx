@@ -325,9 +325,14 @@ export default function EmployeeDirectory() {
 
     // Mobile is a two-screen flow: the list at /employees, the profile at
     // /employees/:id. A real route change means the PWA back gesture works.
+    //
+    // Sized to its content, not `min-h-full`: the shell (Sidebar.tsx:288) is the
+    // h-dvh scroll container and already appends the bottom-bar spacer. Forcing
+    // full height here made every short tab — Attendance especially — stretch to
+    // the viewport and leave dead space below the content.
     if (!isDesktop) {
         return (
-            <div className="min-h-full bg-background">
+            <div className="bg-background">
                 {selectedId ? profilePane : (
                     <>
                         <DirectoryHeader

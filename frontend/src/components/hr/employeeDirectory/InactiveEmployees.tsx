@@ -17,6 +17,17 @@ import { employeeDisplayName } from './employeeName';
 import { formatDate } from '../../../utils/istUtils';
 import { Employee } from '../../../types';
 
+// Employee.address is `string | { street?, city?, state?, pincode? }`. The
+// object form cannot render as a ReactNode, so flatten it to one line — same
+// field order as ProfileDisplay.tsx.
+function formatAddress(address: Employee['address']): string {
+    if (!address) return 'N/A';
+    if (typeof address === 'string') return address.trim() || 'N/A';
+    const parts = [address.street, address.city, address.state, address.pincode]
+        .filter((p): p is string => typeof p === 'string' && p.trim() !== '');
+    return parts.length > 0 ? parts.join(', ') : 'N/A';
+}
+
 const InactiveEmployees: React.FC = () => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -69,7 +80,7 @@ const InactiveEmployees: React.FC = () => {
                     }
                     setActivatingId(null);
                 },
-                onError: (error: any) => {
+                onError: (error: Error) => {
                     console.error('Failed to reactivate employee:', error);
                     toast({
                         title: "Error",
@@ -337,7 +348,7 @@ const InactiveEmployees: React.FC = () => {
                                             </div>
                                             <div className="flex items-start space-x-2">
                                                 <Building className="mt-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                <span className="text-foreground">{employeeDetails.address || 'N/A'}</span>
+                                                <span className="text-foreground">{formatAddress(employeeDetails.address)}</span>
                                             </div>
                                         </div>
                                     </div>

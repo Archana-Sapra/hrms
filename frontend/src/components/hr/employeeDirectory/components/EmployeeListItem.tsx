@@ -19,10 +19,14 @@ export function EmployeeListItem({
     const meta = [employee.position, employee.department].filter(Boolean).join(' · ');
 
     return (
-        <li role="option" aria-selected={isSelected}>
+        // A plain list, not a listbox: an ARIA `option` must not contain a
+        // focusable element, and the row's control is a real button. Selection
+        // is conveyed with aria-current on that button instead.
+        <li>
             <button
                 type="button"
                 onClick={() => onSelect(employee._id)}
+                aria-current={isSelected ? 'true' : undefined}
                 className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset
                     ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}

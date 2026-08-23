@@ -599,6 +599,15 @@ html[data-theme='independence'] ::selection {
     @apply border-border outline-ring/50;
   }
 
+  /* The scroll context is the container in Sidebar.tsx, not the body, so the
+     overscroll/rubber-band gutter is painted from the root element. Setting it
+     here pins that gutter to the active theme instead of leaving it to
+     background propagation, which only works while html has no background of
+     its own. */
+  html {
+    @apply bg-background;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Nunito', sans-serif;

@@ -286,7 +286,7 @@ export default function AppLayout() {
           fixed at the collapsed width — previously it was a hardcoded 80px
           that silently assumed the same thing. */}
       <div
-        className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 min-w-0 transition-all duration-300 md:ml-(--sidebar-offset)"
+        className="flex-1 overflow-y-auto bg-background min-w-0 transition-all duration-300 md:ml-(--sidebar-offset)"
         style={{ '--sidebar-offset': `${SIDEBAR_WIDTH_COLLAPSED}px` } as React.CSSProperties}
       >
         <Outlet />

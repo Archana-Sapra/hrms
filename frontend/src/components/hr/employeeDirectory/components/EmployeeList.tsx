@@ -64,23 +64,28 @@ export function EmployeeList({
         );
     }
 
-    // Roving arrow-key navigation over the rendered buttons.
+    // Arrow-key navigation over the row buttons. Scoped to direct children so
+    // it stays correct if a row ever gains a nested control; Enter and Space
+    // are the button's own default activation and are left alone.
     const handleKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
-        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+        if (!keys.includes(e.key)) return;
         const items = Array.from(
-            e.currentTarget.querySelectorAll<HTMLButtonElement>('button'),
+            e.currentTarget.querySelectorAll<HTMLButtonElement>(':scope > li > button'),
         );
+        if (items.length === 0) return;
         const idx = items.indexOf(document.activeElement as HTMLButtonElement);
         if (idx === -1) return;
         e.preventDefault();
-        const next = e.key === 'ArrowDown'
-            ? Math.min(idx + 1, items.length - 1)
-            : Math.max(idx - 1, 0);
+        const next = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1)
+            : e.key === 'ArrowUp' ? Math.max(idx - 1, 0)
+            : e.key === 'Home' ? 0
+            : items.length - 1;
         items[next]?.focus();
     };
 
     return (
-        <ul role="listbox" aria-label="Employees" onKeyDown={handleKeyDown} className="divide-y divide-border">
+        <ul aria-label="Employees" onKeyDown={handleKeyDown} className="divide-y divide-border">
             {employees.map((e) => (
                 <EmployeeListItem
                     key={e._id}

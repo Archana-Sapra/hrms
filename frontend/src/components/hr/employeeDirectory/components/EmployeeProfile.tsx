@@ -59,7 +59,11 @@ export function EmployeeProfile({
                 showBack={showBack}
             />
 
-            <Tabs value={tab} onValueChange={setTab} className="flex-1 p-4">
+            {/* No `flex-1`: the tab panel sizes to its content. Stretching it to
+                fill the parent left dead space below every short tab, since the
+                panels vary a lot in height (Attendance is one page of rows,
+                Profile is a long form). */}
+            <Tabs value={tab} onValueChange={setTab} className="p-4">
                 {/* Full-width on every breakpoint. `sm:w-auto sm:inline-grid`
                     squashed four tabs into the left third of a wide pane. */}
                 <TabsList className="grid h-11 w-full grid-cols-4">

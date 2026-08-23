@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Pencil, MoreVertical, Link2Off, UserX, UserCheck, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { EmployeeAvatar } from './EmployeeAvatar';
 import { employeeDisplayName } from '../employeeName';
 import type { Employee } from '@/types';
@@ -85,54 +86,43 @@ export function ProfileHeader({
                                 <Pencil className="size-4 sm:mr-1.5" aria-hidden="true" />
                                 <span className="sr-only sm:not-sr-only">Edit</span>
                             </Button>
-                            <div className="relative">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setMenuOpen((o) => !o)}
-                                    aria-label="More actions"
-                                    aria-expanded={menuOpen}
-                                    aria-haspopup="menu"
-                                >
-                                    <MoreVertical className="size-4" />
-                                </Button>
-                                {menuOpen && (
-                                    <>
-                                        <div
-                                            className="fixed inset-0 z-10"
-                                            aria-hidden="true"
-                                            onClick={() => setMenuOpen(false)}
-                                        />
-                                        <div
-                                            role="menu"
-                                            className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-md"
+                            {/* ui/popover, not a hand-rolled menu: Radix gives
+                                Escape-to-dismiss, outside-click dismissal and
+                                focus restore to the trigger, none of which the
+                                previous click-catcher overlay did. */}
+                            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="More actions"
+                                    >
+                                        <MoreVertical className="size-4" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-52 p-1">
+                                    {isLinked && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setMenuOpen(false); onUnlink(); }}
+                                            className="flex h-11 w-full items-center gap-2 rounded-sm px-3 text-left text-sm text-foreground hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
                                         >
-                                            {isLinked && (
-                                                <button
-                                                    type="button"
-                                                    role="menuitem"
-                                                    onClick={() => { setMenuOpen(false); onUnlink(); }}
-                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-accent focus-visible:outline-none focus-visible:bg-accent"
-                                                >
-                                                    <Link2Off className="size-4" aria-hidden="true" />
-                                                    Unlink user account
-                                                </button>
-                                            )}
-                                            <button
-                                                type="button"
-                                                role="menuitem"
-                                                disabled={isToggling}
-                                                onClick={() => { setMenuOpen(false); onToggleStatus(); }}
-                                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-destructive hover:bg-accent focus-visible:outline-none focus-visible:bg-accent disabled:opacity-50"
-                                            >
-                                                {employee.isActive
-                                                    ? <><UserX className="size-4" aria-hidden="true" />Deactivate employee</>
-                                                    : <><UserCheck className="size-4" aria-hidden="true" />Activate employee</>}
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                                            <Link2Off className="size-4" aria-hidden="true" />
+                                            Unlink user account
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        disabled={isToggling}
+                                        onClick={() => { setMenuOpen(false); onToggleStatus(); }}
+                                        className="flex h-11 w-full items-center gap-2 rounded-sm px-3 text-left text-sm text-destructive hover:bg-accent focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50"
+                                    >
+                                        {employee.isActive
+                                            ? <><UserX className="size-4" aria-hidden="true" />Deactivate employee</>
+                                            : <><UserCheck className="size-4" aria-hidden="true" />Activate employee</>}
+                                    </button>
+                                </PopoverContent>
+                            </Popover>
                         </>
                     )}
                 </div>

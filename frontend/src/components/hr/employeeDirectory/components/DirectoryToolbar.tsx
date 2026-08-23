@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { FilterSheet } from './FilterSheet';
 import type { useEmployeeFilters } from '../useEmployeeFilters';
 
@@ -17,6 +14,29 @@ export function DirectoryToolbar({
     departments: string[];
 }) {
     const [sheetOpen, setSheetOpen] = useState(false);
+
+    const LINK_STATE_LABELS: Record<string, string> = {
+        linked: 'Linked to a user',
+        unlinked: 'Not linked',
+    };
+
+    const activeChips = [
+        filters.department !== 'all' && {
+            key: 'department',
+            label: filters.department,
+            onClear: () => filters.setDepartment('all'),
+        },
+        filters.employmentType !== 'all' && {
+            key: 'employmentType',
+            label: filters.employmentType,
+            onClear: () => filters.setEmploymentType('all'),
+        },
+        filters.linkState !== 'all' && {
+            key: 'linkState',
+            label: LINK_STATE_LABELS[filters.linkState] ?? filters.linkState,
+            onClear: () => filters.setLinkState('all'),
+        },
+    ].filter((c): c is { key: string; label: string; onClear: () => void } => Boolean(c));
 
     return (
         <div className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
@@ -46,10 +66,14 @@ export function DirectoryToolbar({
                     )}
                 </div>
 
+                {/* Reachable at every width, not just below lg. The desktop
+                    inline row below carries department and account status only;
+                    a third select would crowd the 360px rail, so employment
+                    type lives in the sheet and the sheet must stay openable. */}
                 <Button
                     variant="outline"
                     size="icon"
-                    className="relative size-11 shrink-0 lg:size-9 lg:hidden"
+                    className="relative size-11 shrink-0 lg:size-9"
                     onClick={() => setSheetOpen(true)}
                     aria-label={`Filters${filters.activeFilterCount ? `, ${filters.activeFilterCount} active` : ''}`}
                 >
@@ -62,33 +86,28 @@ export function DirectoryToolbar({
                 </Button>
             </div>
 
-            {/* Inline filters, desktop only */}
-            <div className="mt-2 hidden items-center gap-2 lg:flex">
-                <Select value={filters.department} onValueChange={filters.setDepartment}>
-                    <SelectTrigger className="h-8 flex-1 text-xs" aria-label="Filter by department">
-                        <SelectValue placeholder="Department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All departments</SelectItem>
-                        {departments.map((d) => (
-                            <SelectItem key={d} value={d}>{d}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Select
-                    value={filters.linkState}
-                    onValueChange={(v) => filters.setLinkState(v as Filters['linkState'])}
-                >
-                    <SelectTrigger className="h-8 flex-1 text-xs" aria-label="Filter by account status">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="linked">Linked</SelectItem>
-                        <SelectItem value="unlinked">Unlinked</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+            {/* One place to set filters (the sheet), one place to see them (the
+                chips). The desktop inline selects that used to sit here
+                duplicated both — they repeated department and account status
+                already shown as chips, and covered only two of the three
+                filters, which is how employment type became unreachable. */}
+            {activeChips.length > 0 && (
+                <ul className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {activeChips.map((chip) => (
+                        <li key={chip.key}>
+                            <button
+                                type="button"
+                                onClick={chip.onClear}
+                                aria-label={`Remove filter: ${chip.label}`}
+                                className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                {chip.label}
+                                <X className="size-3" aria-hidden="true" />
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
                 {filters.visible.length === filters.total
