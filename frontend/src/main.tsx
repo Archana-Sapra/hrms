@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import Login from "./components/login-form";
-import Signup from "./components/signup-form";
 import ForgotPassword from "./components/ForgotPassword";
 
 import NotFound from './components/NotFoundPage';
@@ -23,7 +22,6 @@ const HRMSDashboard = lazy(() => import('./components/dashboard'));
 const GetProfile = lazy(() => import('./components/ProfileDisplay'));
 const EmployeeDirectory = lazy(() => import('./components/hr/employeeDirectory/EmployeeDirectory'));
 const AddEmployee = lazy(() => import('./components/hr/employeeDirectory/AddEmployee'));
-const EmployeeLink = lazy(() => import('./components/hr/employeeDirectory/EmployeeLink'));
 const HolidayManagementPage = lazy(() => import('./components/hr/HolidaysPage'));
 const AnnouncementsPage = lazy(() => import('./components/hr/AnnouncementsPage'));
 const TaskReportsManage = lazy(() => import('./components/hr/TaskReportsPage'));
@@ -92,7 +90,6 @@ createRoot(document.getElementById('root') as HTMLElement).render(
                                         {/* Authentication Routes */}
                                         <Route path="/login" element={<Login />} />
                                         <Route path="/auth/login" element={<Login />} />
-                                        <Route path="/auth/signup" element={<Signup />} />
                                         <Route path="/auth/forgotPassword" element={<ForgotPassword />} />
 
                                         {/* HRMS Application Routes.
@@ -113,7 +110,6 @@ createRoot(document.getElementById('root') as HTMLElement).render(
                                                 <Route index element={<RequireRole roles={HR_ONLY}><EmployeeDirectory /></RequireRole>} />
                                                 <Route path=":employeeId" element={<RequireRole roles={HR_ONLY}><EmployeeDirectory /></RequireRole>} />
                                                 <Route path="add" element={<RequireRole roles={HR_ONLY}><AddEmployee /></RequireRole>} />
-                                                <Route path="link" element={<RequireRole roles={HR_ONLY}><EmployeeLink /></RequireRole>} />
                                             </Route>
 
                                             <Route path="/holidays" element={<HolidayManagementPage />} />

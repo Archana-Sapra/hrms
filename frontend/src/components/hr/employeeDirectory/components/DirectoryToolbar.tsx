@@ -3,6 +3,7 @@ import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DirectoryStatusTabs } from './DirectoryHeader';
+import type { DirectoryView } from './DirectoryHeader';
 import { FilterSheet } from './FilterSheet';
 import { employmentTypeLabel } from '../employmentTypes';
 import type { useEmployeeFilters } from '../useEmployeeFilters';
@@ -19,8 +20,8 @@ export function DirectoryToolbar({
 }: {
     filters: Filters;
     departments: string[];
-    status: 'active' | 'inactive';
-    onStatusChange: (s: 'active' | 'inactive') => void;
+    status: DirectoryView;
+    onStatusChange: (s: DirectoryView) => void;
 }) {
     const [sheetOpen, setSheetOpen] = useState(false);
 

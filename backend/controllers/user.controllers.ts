@@ -18,6 +18,12 @@ export const register = asyncHandler(async (req: IAuthRequest, res: Response) =>
   // Shape guaranteed by validateBody(registerSchema) on the route.
   const { name, email, password, role, employeeId } = req.body as RegisterInput;
 
+  // HR may staff the directory but not mint privileged accounts; without this
+  // an HR user could create an admin and escalate their own access.
+  if (req.user?.role !== 'admin' && role !== 'employee') {
+    throw new ValidationError('Only an admin can create admin or HR accounts');
+  }
+
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ValidationError('User already exists');
@@ -38,11 +44,10 @@ export const register = asyncHandler(async (req: IAuthRequest, res: Response) =>
     role
   };
 
-  if (role === 'employee') {
-    if (!employeeId) {
-      throw new ValidationError('Employee ID is required for employee users');
-    }
-
+  // Any role may link a profile, and none has to at creation time. An employee
+  // account left unlinked cannot log in (login enforces that) until it is
+  // linked from the directory's Accounts tab.
+  if (employeeId) {
     const employee = await Employee.findOne({ employeeId });
     if (!employee) {
       throw new NotFoundError('Employee not found for given employeeId');
@@ -220,9 +225,24 @@ export const deleteUser = asyncHandler(async (req: IAuthRequest, res: Response) 
     );
   }
 
-  // Safety: refuse to delete admin or HR accounts
-  if (user.role === 'admin' || user.role === 'hr') {
-    throw new ValidationError('Cannot delete admin or HR user accounts.');
+  // Mirrors register: HR staffs the directory, only an admin touches
+  // privileged accounts.
+  if (req.user?.role !== 'admin' && user.role !== 'employee') {
+    throw new ValidationError('Only an admin can delete admin or HR accounts.');
+  }
+
+  // Never delete yourself, and never remove the last admin — either would lock
+  // the organisation out of user management. A mistyped account is still
+  // deletable, which is the point of allowing this at all.
+  if (String(user._id) === String(req.user?._id)) {
+    throw new ValidationError('You cannot delete your own account.');
+  }
+
+  if (user.role === 'admin') {
+    const admins = await User.countDocuments({ role: 'admin' });
+    if (admins <= 1) {
+      throw new ValidationError('Cannot delete the only admin account.');
+    }
   }
 
   await User.findByIdAndDelete(userId);

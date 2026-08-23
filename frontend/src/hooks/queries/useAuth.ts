@@ -8,7 +8,7 @@ import type {
   User,
   Employee,
   LoginCredentials,
-  SignupData,
+  CreateAccountData,
   PasswordResetRequestDto,
 } from '@/types';
 
@@ -90,20 +90,23 @@ export const useLogin = () => {
 };
 
 /**
- * Signup mutation (Admin only)
- * Creates new user account
+ * Create an account as admin/HR. Sends `role` and `employeeId`, so an employee
+ * account is linked to its profile as it is created rather than born orphaned.
  */
-export const useSignup = () => {
+export const useCreateAccount = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (signupData: SignupData) => {
-      const { data } = await axiosInstance.post<ApiResponse<User>>(API_ENDPOINTS.AUTH.REGISTER, signupData);
+    mutationFn: async (accountData: CreateAccountData) => {
+      const { data } = await axiosInstance.post<ApiResponse<User>>(
+        API_ENDPOINTS.AUTH.REGISTER,
+        accountData,
+      );
       return data.data;
     },
     onSuccess: () => {
-      // Invalidate users list if it exists
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.all() });
     },
   });
 };

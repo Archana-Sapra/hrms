@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Pencil, MoreVertical, Link2Off, UserX, UserCheck, Save, X } from 'lucide-react';
+import { ArrowLeft, Pencil, MoreVertical, Link2, Link2Off, UserX, UserCheck, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -9,7 +9,7 @@ import type { Employee } from '@/types';
 
 export function ProfileHeader({
     employee, isEditing, isSaving, isToggling, isLinked,
-    onEdit, onCancel, onSave, onToggleStatus, onUnlink, onBack, showBack,
+    onEdit, onCancel, onSave, onToggleStatus, onLink, onUnlink, onBack, showBack,
 }: {
     employee: Employee;
     isEditing: boolean;
@@ -20,6 +20,7 @@ export function ProfileHeader({
     onCancel: () => void;
     onSave: () => void;
     onToggleStatus: () => void;
+    onLink: () => void;
     onUnlink: () => void;
     onBack: () => void;
     showBack: boolean;
@@ -56,9 +57,15 @@ export function ProfileHeader({
                 <div className="flex shrink-0 items-center gap-2">
                     <div className="hidden items-center gap-1.5 sm:flex">
                         {!isLinked && (
-                            <Badge variant="warning" className="h-9 rounded-md px-3">
-                                No user account
-                            </Badge>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 text-amber-700 dark:text-amber-400"
+                                onClick={onLink}
+                            >
+                                <Link2 className="size-4 mr-1.5" aria-hidden="true" />
+                                Link account
+                            </Button>
                         )}
                         <Badge
                             variant={employee.isActive ? 'success' : 'error'}
@@ -97,7 +104,7 @@ export function ProfileHeader({
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent align="end" className="w-52 p-1">
-                                    {isLinked && (
+                                    {isLinked ? (
                                         <button
                                             type="button"
                                             onClick={() => { setMenuOpen(false); onUnlink(); }}
@@ -105,6 +112,15 @@ export function ProfileHeader({
                                         >
                                             <Link2Off className="size-4" aria-hidden="true" />
                                             Unlink user account
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => { setMenuOpen(false); onLink(); }}
+                                            className="flex h-11 w-full items-center gap-2 rounded-sm px-3 text-left text-sm text-foreground hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+                                        >
+                                            <Link2 className="size-4" aria-hidden="true" />
+                                            Link user account
                                         </button>
                                     )}
                                     <button
@@ -130,7 +146,15 @@ export function ProfileHeader({
                 <Badge variant={employee.isActive ? 'success' : 'error'}>
                     {employee.isActive ? 'Active' : 'Inactive'}
                 </Badge>
-                {!isLinked && <Badge variant="warning">No user account</Badge>}
+                {!isLinked && (
+                    <button
+                        type="button"
+                        onClick={onLink}
+                        className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        <Badge variant="warning">No user account — link</Badge>
+                    </button>
+                )}
             </div>
         </div>
     );

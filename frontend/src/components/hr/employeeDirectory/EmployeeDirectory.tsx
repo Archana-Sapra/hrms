@@ -5,6 +5,7 @@ import useAuth from '../../../hooks/authjwt';
 import {
     useEmployees, useEmployee, useAllLeaves, useUsers, useDepartments,
     useUpdateEmployee, useToggleEmployeeStatus, useUnlinkEmployeeFromUser,
+    useLinkEmployeeToUser,
 } from '../../../hooks/queries';
 import { useMediaQuery } from '../../../hooks/use-media-query';
 import { useToast } from '../../ui/toast';
@@ -16,6 +17,9 @@ import {
 } from '../../../schemas/employeeValidation';
 import { useEmployeeFilters } from './useEmployeeFilters';
 import { DirectoryHeader, DirectoryActions, DirectoryStatusTabs } from './components/DirectoryHeader';
+import type { DirectoryView } from './components/DirectoryHeader';
+import { LinkUserDialog } from './components/LinkUserDialog';
+import UnlinkedAccounts from './UnlinkedAccounts';
 import { DirectoryToolbar } from './components/DirectoryToolbar';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeProfile } from './components/EmployeeProfile';
@@ -23,7 +27,7 @@ import { employeeDisplayName } from './employeeName';
 import InactiveEmployees from './InactiveEmployees';
 import EditAttendanceModal from './attendance/EditAttendanceModal';
 import type { AttendanceRow } from '@/components/attendance/types';
-import type { Employee } from '../../../types';
+import type { Employee, User } from '../../../types';
 import type { UpdateEmployeeDto } from '../../../types';
 
 /** Fields validateField knows about. Anything else skips per-keystroke checks. */
@@ -42,7 +46,9 @@ export default function EmployeeDirectory() {
     const confirm = useConfirm();
 
     const isDesktop = useMediaQuery('(min-width: 1024px)');
-    const status = searchParams.get('status') === 'inactive' ? 'inactive' : 'active';
+    const statusParam = searchParams.get('status');
+    const status: DirectoryView =
+        statusParam === 'inactive' || statusParam === 'accounts' ? statusParam : 'active';
 
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<AttendanceRow | null>(null);
@@ -50,6 +56,7 @@ export default function EmployeeDirectory() {
     const [draft, setDraft] = useState<Partial<Employee> | null>(null);
     const [draftFor, setDraftFor] = useState<string | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
     const { data: employees = [], isLoading, error: employeesError } = useEmployees({ status: 'active' });
     const { data: users = [] } = useUsers();
@@ -67,6 +74,7 @@ export default function EmployeeDirectory() {
     const updateEmployee = useUpdateEmployee();
     const toggleStatus = useToggleEmployeeStatus();
     const unlink = useUnlinkEmployeeFromUser();
+    const link = useLinkEmployeeToUser();
 
     const filters = useEmployeeFilters({ employees, users });
 
@@ -89,10 +97,10 @@ export default function EmployeeDirectory() {
         navigate(`/employees${query ? `?${query}` : ''}`);
     };
 
-    const setStatus = (next: 'active' | 'inactive') => {
+    const setStatus = (next: DirectoryView) => {
         const params = new URLSearchParams(searchParams);
-        if (next === 'inactive') params.set('status', 'inactive');
-        else params.delete('status');
+        if (next === 'active') params.delete('status');
+        else params.set('status', next);
         setSearchParams(params, { replace: true });
     };
 
@@ -205,17 +213,33 @@ export default function EmployeeDirectory() {
         });
     };
 
-    if (status === 'inactive') {
+    const handleLink = (user: User) => {
+        if (!employeeProfile) return;
+        const name = employeeDisplayName(employeeProfile);
+
+        link.mutate(
+            { userId: user._id, employeeId: employeeProfile.employeeId },
+            {
+                onSuccess: () => {
+                    setLinkDialogOpen(false);
+                    toast({ title: 'Linked', description: `${user.name} can now sign in as ${name}.` });
+                },
+                onError: (error: Error) =>
+                    toast({ variant: 'destructive', title: 'Link failed', description: error.message }),
+            },
+        );
+    };
+
+    if (status === 'inactive' || status === 'accounts') {
         return (
             <div className="min-h-full bg-background">
-                <DirectoryHeader
-                    onAdd={() => navigate('/employees/add')}
-                    onLink={() => navigate('/employees/link')}
-                />
+                <DirectoryHeader onAdd={() => navigate('/employees/add')} />
                 <div className="border-b border-border bg-card px-4 pb-2.5">
                     <DirectoryStatusTabs status={status} onStatusChange={setStatus} />
                 </div>
-                <div className="p-4"><InactiveEmployees /></div>
+                <div className="p-4">
+                    {status === 'inactive' ? <InactiveEmployees /> : <UnlinkedAccounts />}
+                </div>
             </div>
         );
     }
@@ -226,7 +250,6 @@ export default function EmployeeDirectory() {
             <div className="hidden shrink-0 border-b border-border bg-card px-4 py-2.5 lg:block">
                 <DirectoryActions
                     onAdd={() => navigate('/employees/add')}
-                    onLink={() => navigate('/employees/link')}
                     count={filters.total}
                 />
             </div>
@@ -298,6 +321,7 @@ export default function EmployeeDirectory() {
             onSave={handleSave}
             onFieldChange={handleFieldChange}
             onToggleStatus={handleToggleStatus}
+            onLink={() => setLinkDialogOpen(true)}
             onUnlink={handleUnlink}
             onBack={goBack}
             showBack={!isDesktop}
@@ -327,6 +351,17 @@ export default function EmployeeDirectory() {
         />
     );
 
+    const linkDialog = employeeProfile ? (
+        <LinkUserDialog
+            open={linkDialogOpen}
+            onOpenChange={setLinkDialogOpen}
+            employeeName={employeeDisplayName(employeeProfile)}
+            users={users}
+            isPending={link.isPending}
+            onSelect={handleLink}
+        />
+    ) : null;
+
     // Mobile is a two-screen flow: the list at /employees, the profile at
     // /employees/:id. A real route change means the PWA back gesture works.
     //
@@ -341,13 +376,13 @@ export default function EmployeeDirectory() {
                     <>
                         <DirectoryHeader
                             onAdd={() => navigate('/employees/add')}
-                            onLink={() => navigate('/employees/link')}
                             count={filters.total}
                         />
                         {listPane}
                     </>
                 )}
                 {attendanceModal}
+                {linkDialog}
             </div>
         );
     }
@@ -364,6 +399,7 @@ export default function EmployeeDirectory() {
                 <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">{profilePane}</div>
             </div>
             {attendanceModal}
+            {linkDialog}
         </div>
     );
 }

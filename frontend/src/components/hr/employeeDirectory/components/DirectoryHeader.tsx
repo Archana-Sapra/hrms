@@ -1,12 +1,13 @@
-import { UserPlus, Link2 } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+export type DirectoryView = 'active' | 'inactive' | 'accounts';
 
 /** Split into pieces so desktop and mobile can place them differently. */
 export function DirectoryActions({
-    onAdd, onLink, count,
+    onAdd, count,
 }: {
     onAdd: () => void;
-    onLink: () => void;
     count?: number;
 }) {
     return (
@@ -17,16 +18,6 @@ export function DirectoryActions({
             )}
 
             <div className="ml-auto flex items-center gap-1.5">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="size-9"
-                    onClick={onLink}
-                    title="Link user account"
-                    aria-label="Link user account"
-                >
-                    <Link2 className="size-4" aria-hidden="true" />
-                </Button>
                 <Button
                     variant="outline"
                     size="icon"
@@ -46,13 +37,14 @@ export function DirectoryActions({
 export function DirectoryStatusTabs({
     status, onStatusChange, className = '',
 }: {
-    status: 'active' | 'inactive';
-    onStatusChange: (s: 'active' | 'inactive') => void;
+    status: DirectoryView;
+    onStatusChange: (s: DirectoryView) => void;
     className?: string;
 }) {
-    const options: Array<{ value: 'active' | 'inactive'; label: string }> = [
+    const options: Array<{ value: DirectoryView; label: string }> = [
         { value: 'active', label: 'Active' },
         { value: 'inactive', label: 'Inactive' },
+        { value: 'accounts', label: 'Accounts' },
     ];
 
     return (
@@ -82,15 +74,14 @@ export function DirectoryStatusTabs({
 }
 
 export function DirectoryHeader({
-    onAdd, onLink, count,
+    onAdd, count,
 }: {
     onAdd: () => void;
-    onLink: () => void;
     count?: number;
 }) {
     return (
         <header className="border-b border-border bg-card px-4 py-2.5">
-            <DirectoryActions onAdd={onAdd} onLink={onLink} count={count} />
+            <DirectoryActions onAdd={onAdd} count={count} />
         </header>
     );
 }

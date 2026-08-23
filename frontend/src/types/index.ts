@@ -921,10 +921,13 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface SignupData {
+/** Registration by an admin/HR user, who also picks the role and the profile to link. */
+export interface CreateAccountData {
   name: string;
   email: string;
   password: string;
+  role: UserRole;
+  employeeId?: string;
 }
 
 export interface CreateEmployeeDto {
