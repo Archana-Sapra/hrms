@@ -71,6 +71,31 @@ controllers/x.ts     const { ... } = req.body as SomeInput;   // guaranteed by m
 - Zod is **v4** both sides: `z.email()` not `z.string().email()`; errors are on
   `error.issues` not `error.errors`.
 
+## Comments — write almost none
+
+Default to **zero comments**. Code says what it does; a comment must earn its
+line. The bar: *would someone break this if the comment weren't there?*
+
+Worth keeping:
+
+- A non-obvious constraint or footgun — "Express 5: `req.query` is getter-only",
+  "employeeId contains slashes, never regex it".
+- Why a deliberate choice that looks wrong **is** right, when the next person
+  would otherwise "fix" it.
+- A short doc comment on an exported helper whose contract isn't obvious from
+  the signature.
+
+Delete on sight:
+
+- Narration of the diff — "this used to be X", "previously both sat at the same
+  weight", "now uses tokens". That belongs in the commit message, not the file.
+- Restating the code: `// map over employees` above a `.map`.
+- Design-rationale essays. One clause, not a paragraph.
+- Section banners and decorative dividers.
+
+Prefer a clear name over a comment explaining a murky one. When a comment is
+warranted, one line beats five.
+
 ## Backend
 
 - Route params are typed `string | string[]` (path-to-regexp v8). Narrow with

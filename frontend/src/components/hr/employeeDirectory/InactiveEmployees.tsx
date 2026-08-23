@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { UserCheck, Calendar, Mail, Phone, Building, RotateCcw, Eye } from 'lucide-react';
+import { UserCheck, Calendar, Mail, Phone, Building, RotateCcw, Eye, Search, X, SearchX } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useEmployees, useEmployee, useToggleEmployeeStatus } from '../../../hooks/queries';
 import { useToast } from '../../ui/toast';
 import { useConfirm } from '../../ui/confirm-dialog';
@@ -14,12 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { EmployeeAvatar } from './components/EmployeeAvatar';
 import { employeeDisplayName } from './employeeName';
+import { matchesEmployeeSearch } from './employeeSearch';
 import { formatDate } from '../../../utils/istUtils';
 import { Employee } from '../../../types';
 
-// Employee.address is `string | { street?, city?, state?, pincode? }`. The
-// object form cannot render as a ReactNode, so flatten it to one line — same
-// field order as ProfileDisplay.tsx.
+/** Employee.address may be an object, which cannot render as a ReactNode. */
 function formatAddress(address: Employee['address']): string {
     if (!address) return 'N/A';
     if (typeof address === 'string') return address.trim() || 'N/A';
@@ -32,11 +32,15 @@ const InactiveEmployees: React.FC = () => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [activatingId, setActivatingId] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
     const { toast } = useToast();
     const confirm = useConfirm();
 
     // Fetch inactive employees
     const { data: inactiveEmployees = [], isLoading: loading } = useEmployees({ status: 'inactive' });
+
+    const term = search.trim().toLowerCase();
+    const visible = inactiveEmployees.filter((e: Employee) => matchesEmployeeSearch(e, term));
 
     // Fetch employee details when modal is open
     const { data: employeeDetails, isLoading: loadingDetails } = useEmployee(selectedEmployeeId || '');
@@ -112,24 +116,45 @@ const InactiveEmployees: React.FC = () => {
 
     return (
         <div className="rounded-xl border border-border bg-card">
-            {/* Matches the Active view's header weight. This was a red icon
-                tile beside an xl bold heading, plus an amber "Deactivated
-                accounts" note restating what the heading, the count and the
-                selected tab all already said — three separate signals for one
-                fact, in a louder visual language than the rest of the
-                directory. */}
-            <div className="flex items-baseline gap-2 border-b border-border px-4 py-3">
-                <h2 className="text-sm font-semibold text-foreground">Inactive employees</h2>
-                <span className="text-sm tabular-nums text-muted-foreground">
-                    {inactiveEmployees.length}
-                </span>
+            <div className="border-b border-border px-4 py-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+                    <h2 className="text-sm font-semibold text-foreground">Inactive employees</h2>
+                    <span className="text-sm tabular-nums text-muted-foreground">
+                        {term ? `${visible.length} of ${inactiveEmployees.length}` : inactiveEmployees.length}
+                    </span>
+
+                    {inactiveEmployees.length > 0 && (
+                        // min-w-0 keeps the focus ring inside the card's padding.
+                        <div className="relative ml-auto w-full min-w-0 max-w-full sm:w-auto sm:max-w-64 sm:flex-1 sm:basis-64">
+                            <Search
+                                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                            <Input
+                                type="search"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search name, email or ID…"
+                                aria-label="Search inactive employees by name, email or employee ID"
+                                className="h-9 pl-9 pr-10"
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch('')}
+                                    aria-label="Clear search"
+                                    className="absolute right-0 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                    <X className="size-4" />
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="p-4">
                 {inactiveEmployees.length === 0 ? (
-                    // Matches the Active list's empty state: a muted icon and
-                    // two lines. The green circle around a "user removed" icon
-                    // sent two conflicting signals at once.
                     <div className="p-8 text-center">
                         <UserCheck className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
                         <p className="mt-3 font-medium text-foreground">No inactive employees</p>
@@ -137,11 +162,22 @@ const InactiveEmployees: React.FC = () => {
                             Everyone in the directory is currently active.
                         </p>
                     </div>
+                ) : visible.length === 0 ? (
+                    <div className="p-8 text-center">
+                        <SearchX className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+                        <p className="mt-3 font-medium text-foreground">No matches</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            No inactive employee matches your search.
+                        </p>
+                        <Button variant="outline" size="sm" className="mt-4" onClick={() => setSearch('')}>
+                            Clear search
+                        </Button>
+                    </div>
                 ) : (
                     <>
                         {/* Mobile: cards */}
                         <ul className="space-y-3 md:hidden">
-                            {inactiveEmployees.map((employee: Employee) => {
+                            {visible.map((employee: Employee) => {
                                 const name = employeeDisplayName(employee);
                                 return (
                                     <li
@@ -219,7 +255,7 @@ const InactiveEmployees: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {inactiveEmployees.map((employee: Employee) => {
+                                    {visible.map((employee: Employee) => {
                                         const name = employeeDisplayName(employee);
                                         return (
                                             <tr key={employee._id} className="hover:bg-accent/40">
@@ -250,10 +286,6 @@ const InactiveEmployees: React.FC = () => {
                                                             <Eye className="size-4" aria-hidden="true" />
                                                             View
                                                         </Button>
-                                                        {/* Outline, not primary: this repeats once per row, and
-                                                            a column of filled buttons made a rare, consequential
-                                                            action the loudest thing on the page. The confirm
-                                                            dialog is what guards it. */}
                                                         <Button
                                                             size="sm"
                                                             variant="outline"

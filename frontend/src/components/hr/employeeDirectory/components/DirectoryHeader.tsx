@@ -1,24 +1,7 @@
 import { UserPlus, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-/**
- * Directory chrome.
- *
- * The rail previously stacked four full-width bands — actions, status tabs,
- * search, then chips and a count — so roughly 200px of a 360px-wide rail was
- * consumed before the first employee row. The list is the subject of the page;
- * it now starts as close to the top as the controls allow.
- *
- * The pieces stay split so desktop and mobile can place them differently.
- */
-
-/**
- * Title, live count and actions on a single row.
- *
- * "Add employee" was a full-width filled button — the loudest element on
- * screen for a routine action, competing with the employee names. Both actions
- * are now icon buttons of equal, secondary weight, with accessible names.
- */
+/** Split into pieces so desktop and mobile can place them differently. */
 export function DirectoryActions({
     onAdd, onLink, count,
 }: {
@@ -33,8 +16,6 @@ export function DirectoryActions({
                 <span className="text-sm tabular-nums text-muted-foreground">{count}</span>
             )}
 
-            {/* `title` gives the hover tooltip, `aria-label` the accessible
-                name — a chain icon alone does not say "link a user account". */}
             <div className="ml-auto flex items-center gap-1.5">
                 <Button
                     variant="outline"
@@ -61,15 +42,7 @@ export function DirectoryActions({
     );
 }
 
-/**
- * Active/Inactive as a compact segmented control.
- *
- * This was a full-width two-column TabsList, a whole band spending 44px to
- * express one binary. It is not a tab set in the ARIA sense either — the two
- * states swap the queried dataset rather than toggling panels within a page —
- * so radios in a group carry the meaning more honestly and announce as
- * "Active, 1 of 2" rather than as tabs with no controlled tabpanel.
- */
+/** Radios, not tabs: these swap the queried dataset, they don't toggle panels. */
 export function DirectoryStatusTabs({
     status, onStatusChange, className = '',
 }: {
@@ -108,8 +81,6 @@ export function DirectoryStatusTabs({
     );
 }
 
-/** Mobile header. No page title of its own — the bottom nav already says where
- *  you are, so the title row carries the count and actions instead. */
 export function DirectoryHeader({
     onAdd, onLink, count,
 }: {

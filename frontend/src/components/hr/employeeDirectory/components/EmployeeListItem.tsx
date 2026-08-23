@@ -3,6 +3,41 @@ import { EmployeeAvatar } from './EmployeeAvatar';
 import { employeeDisplayName } from '../employeeName';
 import type { Employee } from '@/types';
 
+const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** "Department of Investment Banking" -> "Investment Banking". */
+const trimDepartmentNoise = (s: string) =>
+    s.replace(/^\s*(the\s+)?department\s+of\s+/i, '').replace(/\s+department\s*$/i, '').trim() || s;
+
+/**
+ * Department, unless the position already says it — "Investment Banking Intern
+ * · Investment Banking" spends the whole line saying one thing twice.
+ */
+function departmentSuffix({ position, department }: Employee) {
+    if (!department) return null;
+    const label = trimDepartmentNoise(department);
+    if (!position) return label;
+
+    const dept = normalise(label);
+    const pos = normalise(position);
+    if (!dept) return null;
+
+    // Substring covers "Investment Banking Analyst" vs "Investment Banking".
+    if (pos.includes(dept) || dept.includes(pos)) return null;
+
+    // Otherwise drop it only when every word of the department already appears
+    // in the position, so "Accounts" hides behind "Account Assistant" but
+    // "Care Taker · Investment Banking" keeps both.
+    const posWords = new Set(pos.split(' '));
+    const deptWords = dept.split(' ');
+    const singular = (w: string) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w);
+    const covered = deptWords.every(
+        (w) => posWords.has(w) || posWords.has(singular(w)) || [...posWords].some((p) => singular(p) === singular(w)),
+    );
+
+    return covered ? null : label;
+}
+
 export function EmployeeListItem({
     employee,
     isSelected,
@@ -13,20 +48,17 @@ export function EmployeeListItem({
     employee: Employee;
     isSelected: boolean;
     isLinked: boolean;
-    /** False when a department filter is active — every visible row would
-     *  otherwise repeat the department already named in the filter chip. */
+    /** False when a department filter is active — the chip already names it. */
     showDepartment?: boolean;
     onSelect: (id: string) => void;
 }) {
     const name = employeeDisplayName(employee);
-    const meta = [employee.position, showDepartment ? employee.department : null]
+    const meta = [employee.position, showDepartment ? departmentSuffix(employee) : null]
         .filter(Boolean)
         .join(' · ');
 
     return (
-        // A plain list, not a listbox: an ARIA `option` must not contain a
-        // focusable element, and the row's control is a real button. Selection
-        // is conveyed with aria-current on that button instead.
+        // Not role="option" — an ARIA option must not contain a focusable element.
         <li>
             <button
                 type="button"
@@ -36,8 +68,7 @@ export function EmployeeListItem({
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring
                     ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
             >
-                {/* A left rule marks selection structurally, so the state does
-                    not rest on a background tint alone. */}
+                {/* Selection needs more than a background tint. */}
                 {isSelected && (
                     <span
                         aria-hidden="true"
@@ -47,15 +78,9 @@ export function EmployeeListItem({
 
                 <EmployeeAvatar name={name} src={employee.profilePicture} className="size-9" />
 
-                {/* Name carries the weight; the role line is smaller, lighter
-                    and non-bold. Previously both sat at near-identical weight,
-                    so nothing anchored the eye down the column. */}
                 <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-medium text-foreground">{name}</span>
-                        {/* A dot, not a "Unlinked" pill: this is a secondary
-                            attribute of a row, and a full badge on every
-                            unlinked employee shouted louder than the names. */}
                         {!isLinked && (
                             <span
                                 title="No user account"

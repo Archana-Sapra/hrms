@@ -66,9 +66,7 @@ export function EmployeeList({
         );
     }
 
-    // Arrow-key navigation over the row buttons. Scoped to direct children so
-    // it stays correct if a row ever gains a nested control; Enter and Space
-    // are the button's own default activation and are left alone.
+    // Scoped to direct children so a nested control in a row can't hijack it.
     const handleKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
         const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
         if (!keys.includes(e.key)) return;

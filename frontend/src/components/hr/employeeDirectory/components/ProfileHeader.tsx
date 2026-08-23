@@ -86,10 +86,6 @@ export function ProfileHeader({
                                 <Pencil className="size-4 sm:mr-1.5" aria-hidden="true" />
                                 <span className="sr-only sm:not-sr-only">Edit</span>
                             </Button>
-                            {/* ui/popover, not a hand-rolled menu: Radix gives
-                                Escape-to-dismiss, outside-click dismissal and
-                                focus restore to the trigger, none of which the
-                                previous click-catcher overlay did. */}
                             <Popover open={menuOpen} onOpenChange={setMenuOpen}>
                                 <PopoverTrigger asChild>
                                     <Button

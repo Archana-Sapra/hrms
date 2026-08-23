@@ -76,12 +76,7 @@ export function FilterSheet({
                     </div>
                 </div>
 
-                {/* Filters apply live, so "Done" only dismisses — it is not a
-                    confirm and does not deserve primary weight. The live count
-                    sits beside it as text, where it reads as feedback on the
-                    choices above rather than as a call to action.
-
-                    Clear is offered only when there is something to clear. */}
+                {/* Filters apply live — "Done" only dismisses, so it isn't a primary action. */}
                 <DialogFooter className="items-center gap-2 sm:justify-between sm:gap-2">
                     <p className="text-sm tabular-nums text-muted-foreground" aria-live="polite">
                         {filters.visible.length} of {filters.total} employees

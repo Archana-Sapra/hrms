@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Employee, User } from '@/types';
 import { employeeDisplayName } from './employeeName';
+import { matchesEmployeeSearch } from './employeeSearch';
 
 export type LinkState = 'all' | 'linked' | 'unlinked';
 
@@ -23,17 +24,9 @@ export function useEmployeeFilters({
     }
 
     const term = search.trim().toLowerCase();
-    // Name, email and employee ID. All three are plain case-insensitive
-    // substring tests — employeeId contains slashes (CFG/CIAML/15FBD), so it
-    // must never be treated as a pattern.
-    const matchesTerm = (e: Employee) =>
-        employeeDisplayName(e).toLowerCase().includes(term) ||
-        (e.email ?? '').toLowerCase().includes(term) ||
-        (e.employeeId ?? '').toLowerCase().includes(term);
-
     const visible = employees
         .filter((e) => {
-            if (term && !matchesTerm(e)) return false;
+            if (!matchesEmployeeSearch(e, term)) return false;
             if (department !== 'all' && e.department !== department) return false;
             if (employmentType !== 'all' && e.employmentType !== employmentType) return false;
             if (linkState !== 'all') {

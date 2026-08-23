@@ -42,8 +42,6 @@ export function DirectoryToolbar({
         },
     ].filter((c): c is { key: string; label: string; onClear: () => void } => Boolean(c));
 
-    // Only meaningful while a search or filter is narrowing the list. Shown
-    // unconditionally it was a permanent line restating the header's count.
     const isNarrowed = !!filters.search.trim() || activeChips.length > 0;
 
     return (
@@ -74,9 +72,7 @@ export function DirectoryToolbar({
                     )}
                 </div>
 
-                {/* Reachable at every width. The sheet is the single place all
-                    three filters are set; the chips below are the single place
-                    they are displayed. */}
+                {/* Not lg:hidden — the sheet holds employment type, which has no inline control. */}
                 <Button
                     variant="outline"
                     size="icon"
@@ -93,8 +89,6 @@ export function DirectoryToolbar({
                 </Button>
             </div>
 
-            {/* Status and the narrowed-count share one row: both describe what
-                the list is currently showing. */}
             <div className="mt-2 flex items-center gap-2">
                 <DirectoryStatusTabs status={status} onStatusChange={onStatusChange} />
                 {isNarrowed && (
