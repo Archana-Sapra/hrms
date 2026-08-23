@@ -7,7 +7,7 @@ import AppearanceSettings from '../hr/settings/AppearanceSettings';
  * not allowed into. This gives every role its own route to the same control.
  */
 const AppearancePage = () => (
-  <div className="min-h-screen bg-background p-4 md:p-8">
+  <div className="min-h-full bg-background p-4 md:p-8">
     <div className="max-w-4xl mx-auto">
       <AppearanceSettings />
     </div>

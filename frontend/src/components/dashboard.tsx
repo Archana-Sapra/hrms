@@ -861,8 +861,8 @@ const HRMSDashboard: React.FC = () => {
     ];
 
     return (
-        <div className="bg-background text-foreground min-h-screen">
-            <div className="flex flex-col h-full">
+        <div className="bg-background text-foreground">
+            <div className="flex flex-col">
                 <ChristmasBanner username={employeeFirstName} />
                 <NewYearBanner />
                 <IndependenceDayBanner username={employeeFirstName} />
@@ -884,7 +884,7 @@ const HRMSDashboard: React.FC = () => {
                     theme={theme}
                 />
 
-                <main id="main-content" className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto" role="main">
+                <main id="main-content" className="p-4 sm:p-6 lg:p-8" role="main">
                     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                         <div className="w-full lg:w-3/4 space-y-6 lg:space-y-8">
                             {isAdmin ? (

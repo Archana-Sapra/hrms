@@ -24,7 +24,7 @@ const SettingsLayout: React.FC<SettingsLayoutProps> = ({ activeSection, onSectio
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       <div className="max-w-7xl mx-auto">
         {/* Sticky Tab Bar */}
         <div className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">

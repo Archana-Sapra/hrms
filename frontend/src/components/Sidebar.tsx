@@ -235,6 +235,7 @@ export default function AppLayout() {
 
   return (
     <div
+      data-app-shell=""
       className={cn(
         "mx-auto flex w-full flex-1 flex-col overflow-hidden bg-gray-100 md:flex-row dark:bg-neutral-800",
         // Rounded corners and a border only from md up. On mobile the fixed
@@ -242,9 +243,11 @@ export default function AppLayout() {
         // rounding cut its corners and the border left a visible gutter down
         // each side — the bar read as a floating island rather than an edge.
         "md:rounded-md md:border md:border-neutral-200 dark:md:border-neutral-700",
-        // h-dvh, not h-screen: 100vh ignores mobile browser chrome, so the
-        // layout ran taller than the visible area while the URL bar showed.
-        "h-dvh",
+        // Height comes from flex-1 against #root, which index.css pins to the
+        // viewport. Setting h-dvh here as well fought that: a fixed 100dvh plus
+        // this element's own border overflowed the pinned parent, and the
+        // document grew a second scrollbar over a dead gutter.
+        "min-h-0",
       )}
     >
       <Sidebar open={open} setOpen={setOpen}>

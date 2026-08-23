@@ -104,7 +104,7 @@ const MyDocuments: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-full bg-gray-50 dark:bg-slate-900">
       {/* Simple Header */}
       <div className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700">
         <div className="px-6 py-4">

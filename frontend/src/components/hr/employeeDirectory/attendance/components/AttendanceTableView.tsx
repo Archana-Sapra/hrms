@@ -1,7 +1,7 @@
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AttendanceStatusBadge, AttendanceStatusIcon } from '@/components/attendance/components/AttendanceStatus';
+import { AttendanceStatusBadge } from '@/components/attendance/components/AttendanceStatus';
 import { formatClock, formatDay, formatShortDate } from '@/components/attendance/formatters';
 import type { AttendanceRow } from '@/components/attendance/types';
 
@@ -56,13 +56,11 @@ export function AttendanceTableView({
                                     />
                                 </td>
                             )}
-                            <td className="whitespace-nowrap p-3">
-                                <span className="flex items-center gap-2">
-                                    <AttendanceStatusIcon record={record} />
-                                    <span className="font-medium text-foreground">
-                                        {formatShortDate(record.date)}
-                                    </span>
-                                </span>
+                            {/* No status icon here — the badge in the Status
+                                column now carries it, and repeating it made
+                                every row show the same glyph twice. */}
+                            <td className="whitespace-nowrap p-3 font-medium text-foreground">
+                                {formatShortDate(record.date)}
                             </td>
                             <td className="whitespace-nowrap p-3 text-muted-foreground">
                                 {formatDay(record.date)}

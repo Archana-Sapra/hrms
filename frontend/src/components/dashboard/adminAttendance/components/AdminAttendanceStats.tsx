@@ -1,34 +1,33 @@
-import { Badge } from '@/components/ui/badge';
+import { Users, UserCheck, UserX, Heart, Calendar } from 'lucide-react';
 import type { WindowStats } from '../useAdminAttendanceGrid';
 
-/**
- * Stat tiles: 2-up on mobile, 4-up from `sm`, per the directory convention.
- *
- * Semantic colour comes from `ui/badge` variants, which is where this codebase
- * keeps it — there is no `--color-success` token, so a `text-success` would
- * silently render as nothing. The previous build wrapped every tile in a
- * `bg-green-50 dark:bg-green-900/20` pill with matching text colour, the raw
- * pair the house style forbids.
- */
 export function AdminAttendanceStats({ stats }: { stats: WindowStats }) {
-    const tiles = [
-        { key: 'total', label: 'Employees', value: stats.total, variant: 'default' as const },
-        { key: 'present', label: 'Present', value: stats.present, variant: 'success' as const },
-        { key: 'absent', label: 'Absent', value: stats.absent, variant: 'error' as const },
-        { key: 'leave', label: 'On leave', value: stats.leave, variant: 'secondary' as const },
-        { key: 'holiday', label: 'Holiday', value: stats.holiday, variant: 'warning' as const },
-    ].filter((t) => t.key !== 'holiday' || t.value > 0);
-
     return (
-        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {tiles.map(({ key, label, value, variant }) => (
-                <div key={key} className="rounded-xl border border-border bg-muted/40 p-3">
-                    <dt className="text-xs text-muted-foreground">{label}</dt>
-                    <dd className="mt-1.5">
-                        <Badge variant={variant}>{value}</Badge>
-                    </dd>
+        <>
+            <div className="flex shrink-0 items-center gap-1 bg-muted/50 px-2 py-1.5 rounded-lg">
+                <Users className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" aria-hidden="true" />
+                <span className="text-muted-foreground font-medium text-xs sm:text-sm">{stats.total} total</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1 bg-green-50 dark:bg-green-900/20 px-2 py-1.5 rounded-lg">
+                <UserCheck className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" aria-hidden="true" />
+                <span className="text-green-600 dark:text-green-400 font-medium text-xs sm:text-sm">{stats.present} present</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-1.5 rounded-lg">
+                <UserX className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" aria-hidden="true" />
+                <span className="text-red-600 dark:text-red-400 font-medium text-xs sm:text-sm">{stats.absent} absent</span>
+            </div>
+            {stats.leave > 0 && (
+                <div className="flex shrink-0 items-center gap-1 bg-purple-50 dark:bg-purple-900/20 px-2 py-1.5 rounded-lg">
+                    <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500" aria-hidden="true" />
+                    <span className="text-purple-600 dark:text-purple-400 font-medium text-xs sm:text-sm">{stats.leave} leave</span>
                 </div>
-            ))}
-        </dl>
+            )}
+            {stats.holiday > 0 && (
+                <div className="flex shrink-0 items-center gap-1 bg-orange-50 dark:bg-orange-900/20 px-2 py-1.5 rounded-lg">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" aria-hidden="true" />
+                    <span className="text-orange-600 dark:text-orange-400 font-medium text-xs sm:text-sm">{stats.holiday} holiday</span>
+                </div>
+            )}
+        </>
     );
 }

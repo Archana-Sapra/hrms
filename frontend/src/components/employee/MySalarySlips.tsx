@@ -127,7 +127,7 @@ const MySalarySlips: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 p-4 sm:p-6">
+    <div className="min-h-full bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Modern Header with Gradient Background */}
         <div className="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-xl mb-8">

@@ -46,7 +46,7 @@ export function recentMonths(count: number): { value: string; label: string }[] 
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         return {
             value: monthParam({ year: d.getFullYear(), month: d.getMonth() }),
-            label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+            label: d.toLocaleDateString('en-GB', { month: 'long' }),
         };
     });
 }

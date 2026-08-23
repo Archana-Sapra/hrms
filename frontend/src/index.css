@@ -613,6 +613,21 @@ html[data-theme='independence'] ::selection {
     font-family: 'Nunito', sans-serif;
   }
 
+  /* Authenticated pages: the shell (Sidebar.tsx) is h-dvh and owns the only
+     scroll container. For that to hold, every ancestor must be pinned to the
+     viewport and clipped — otherwise the shell's height cascades back up as
+     document height and the page grows its own second scrollbar with a dead
+     gutter below the content.
+     Scoped to the shell so public pages (landing, login) still scroll normally. */
+  html:has([data-app-shell]),
+  html:has([data-app-shell]) body {
+    @apply h-dvh overflow-hidden;
+  }
+
+  #root:has([data-app-shell]) {
+    @apply flex h-dvh flex-col overflow-hidden;
+  }
+
   /* Hide native password reveal/clear controls — we render our own toggle,
      otherwise Edge/IE show a second eye and Safari a duplicate clear button. */
   input::-ms-reveal,
@@ -628,6 +643,17 @@ html[data-theme='independence'] ::selection {
 
 .font-script {
   font-family: 'Great Vibes', cursive;
+}
+
+/* Used in several places (Sidebar, stat rows) but never actually defined —
+   the class silently did nothing until now. */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Custom Scrollbar Styles */

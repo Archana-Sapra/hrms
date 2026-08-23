@@ -1,18 +1,11 @@
 import { localDateKey } from '@/components/attendance/types';
-import { formatDay } from '@/components/attendance/formatters';
 import { AttendanceDayCell } from './AttendanceDayCell';
 import { dayCellLabel } from '../dayCellLabel';
 import { rowFor, type EmployeeAttendance } from '../useAdminAttendanceGrid';
 
-/**
- * Desktop presentation, from `md` up: employees down, the day window across.
- *
- * Real table semantics — `scope="col"` on the day headers and `scope="row"` on
- * the employee cell — so a screen reader announces "Priya Sharma, Tue 12 Aug"
- * for a cell instead of reading a wall of unlabelled buttons. The previous build
- * used a bare `<table>` with no scopes and made each cell a click-handling
- * `<div>`, unreachable by keyboard.
- */
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export function AdminAttendanceGrid({
     records, days, onEdit,
 }: {
@@ -21,45 +14,61 @@ export function AdminAttendanceGrid({
     onEdit: (record: EmployeeAttendance, day: Date) => void;
 }) {
     return (
-        <div className="hidden overflow-hidden rounded-xl border border-border md:block">
-            <div className="max-h-128 overflow-y-auto">
-                <table className="w-full border-collapse">
+        <div className="overflow-x-auto rounded-lg border border-border">
+            <div className="max-h-[500px] overflow-y-auto">
+                <table className="w-full table-fixed">
                     <caption className="sr-only">
                         Attendance by employee for the selected days
                     </caption>
-                    <thead className="sticky top-0 z-10 bg-muted">
-                        <tr className="border-b border-border">
+                    <colgroup>
+                        <col className="w-40 sm:w-56" />
+                        {days.map((day) => (
+                            <col key={localDateKey(day)} className="w-[88px] sm:w-auto" />
+                        ))}
+                    </colgroup>
+                    <thead className="sticky top-0 z-10">
+                        <tr className="bg-muted border-b border-border">
                             <th
                                 scope="col"
-                                className="px-4 py-3 text-left text-sm font-semibold text-foreground"
+                                className="text-left py-2 sm:py-4 px-2 sm:px-4 font-semibold text-foreground text-xs sm:text-sm"
                             >
                                 Employee
                             </th>
-                            {days.map((day) => (
-                                <th
-                                    key={localDateKey(day)}
-                                    scope="col"
-                                    className="min-w-28 px-2 py-3 text-center text-sm font-semibold text-foreground"
-                                >
-                                    <span className="block">{formatDay(localDateKey(day))}</span>
-                                    <span className="block text-xs font-normal text-muted-foreground">
-                                        {day.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                    </span>
-                                </th>
-                            ))}
+                            {days.map((day) => {
+                                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                                return (
+                                    <th
+                                        key={localDateKey(day)}
+                                        scope="col"
+                                        className={`text-center py-2 sm:py-4 px-1 sm:px-2 font-semibold text-xs sm:text-sm ${
+                                            isWeekend ? 'text-muted-foreground' : 'text-foreground'
+                                        }`}
+                                    >
+                                        <div className="flex flex-col items-center">
+                                            <span>{DAYS[day.getDay()]}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {String(day.getDate()).padStart(2, '0')} {MONTHS[day.getMonth()]}
+                                            </span>
+                                        </div>
+                                    </th>
+                                );
+                            })}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                         {records.map((record) => (
-                            <tr key={record.employee._id} className="bg-card">
-                                <th scope="row" className="px-4 py-3 text-left align-middle">
-                                    <span className="block text-sm font-medium text-foreground">
+                            <tr key={record.employee._id} className="bg-card transition-colors">
+                                <th scope="row" className="py-2 sm:py-4 px-2 sm:px-4 text-left">
+                                    <div
+                                        className="font-medium text-sm sm:text-base text-foreground leading-tight truncate"
+                                        title={record.name}
+                                    >
                                         {record.name}
-                                    </span>
+                                    </div>
                                     {record.employee.employeeId && (
-                                        <span className="block text-xs font-normal text-muted-foreground">
-                                            {record.employee.employeeId}
-                                        </span>
+                                        <div className="text-xs sm:text-sm text-muted-foreground leading-tight mt-0.5 font-normal truncate">
+                                            ID: {record.employee.employeeId}
+                                        </div>
                                     )}
                                 </th>
                                 {days.map((day) => {
@@ -68,13 +77,13 @@ export function AdminAttendanceGrid({
                                         weekday: 'short', day: 'numeric', month: 'short',
                                     });
                                     return (
-                                        <td key={localDateKey(day)} className="p-1 align-middle">
+                                        <td key={localDateKey(day)} className="py-2 sm:py-4 px-1 sm:px-2">
                                             <button
                                                 type="button"
                                                 onClick={() => onEdit(record, day)}
                                                 title={dayCellLabel(row, record.name, dayLabel)}
                                                 aria-label={dayCellLabel(row, record.name, dayLabel)}
-                                                className="flex min-h-16 w-full items-center justify-center rounded-lg p-2 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                className="flex w-full justify-center rounded-lg p-1 sm:p-2 hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                             >
                                                 <AttendanceDayCell row={row} />
                                             </button>
