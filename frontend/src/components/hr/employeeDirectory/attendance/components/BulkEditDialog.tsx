@@ -3,10 +3,10 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AttendanceFormFields } from './AttendanceFormFields';
-import { defaultFormValues } from '../attendanceForm';
-import { localDateKey } from '../types';
-import type { AttendanceFormValues } from '../types';
+import { AttendanceFormFields } from '@/components/attendance/components/AttendanceFormFields';
+import { defaultFormValues } from '@/components/attendance/attendanceForm';
+import { localDateKey } from '@/components/attendance/types';
+import type { AttendanceFormValues } from '@/components/attendance/types';
 
 export function BulkEditDialog({
     open, onOpenChange, selectedCount, onSubmit, isSubmitting,

@@ -1,9 +1,9 @@
 import { MapPin, Pencil, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AttendanceStatusBadge } from './AttendanceStatus';
-import { formatClock, formatDay, formatShortDate } from '../formatters';
-import type { AttendanceRow } from '../types';
+import { AttendanceStatusBadge } from '@/components/attendance/components/AttendanceStatus';
+import { formatClock, formatDay, formatShortDate } from '@/components/attendance/formatters';
+import type { AttendanceRow } from '@/components/attendance/types';
 
 /**
  * Mobile presentation: one compact row per day, not a full card.

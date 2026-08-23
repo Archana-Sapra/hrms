@@ -3,11 +3,17 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useUpdateAttendanceRecord } from '@/hooks/queries';
+import { useEffectiveSettings, useUpdateAttendanceRecord } from '@/hooks/queries';
 import { AttendanceFormFields } from '@/components/attendance/components/AttendanceFormFields';
 import { localDateKey } from '@/components/attendance/types';
 import type { AttendanceFormValues, AttendanceRow } from '@/components/attendance/types';
-import type { Employee } from '@/types';
+import type { EmployeeIdentity } from '../useAdminAttendanceGrid';
+
+export interface EditTarget {
+    row: AttendanceRow;
+    day: Date;
+    employee: EmployeeIdentity;
+}
 
 /** `datetime-local` value for a stored instant, on the record's own day. */
 function toFormTime(dayKey: string, iso: string | undefined, fallback: string): string {
@@ -17,27 +23,37 @@ function toFormTime(dayKey: string, iso: string | undefined, fallback: string): 
     return `${dayKey}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function seedValues(record: AttendanceRow): AttendanceFormValues {
-    const dayKey = localDateKey(new Date(record.date));
+function seedValues(
+    row: AttendanceRow,
+    dayKey: string,
+    hours: { start: string; end: string },
+): AttendanceFormValues {
     // Only present/absent/half-day are editable; derived statuses (weekend,
-    // holiday, leave) fall back to present so the select has a valid value.
-    const editable = ['present', 'absent', 'half-day'].includes(record.status)
-        ? record.status
+    // holiday, leave, none) fall back to present so the select has a valid value.
+    const editable = ['present', 'absent', 'half-day'].includes(row.status)
+        ? row.status
         : 'present';
     return {
         status: editable,
-        checkIn: toFormTime(dayKey, record.checkIn, '09:30'),
-        checkOut: toFormTime(dayKey, record.checkOut, '17:30'),
+        checkIn: toFormTime(dayKey, row.checkIn, hours.start),
+        checkOut: toFormTime(dayKey, row.checkOut, hours.end),
     };
 }
 
-export default function EditAttendanceModal({
-    isOpen, onClose, record, employeeProfile,
+/**
+ * Admin edit modal.
+ *
+ * Deliberately not `attendance/EditAttendanceModal.tsx` reused wholesale: this
+ * one seeds default times from the department's configured business hours via
+ * `useEffectiveSettings`, where the per-employee modal hardcodes 09:30/17:30.
+ * The form body itself is the shared `AttendanceFormFields`, so the fields,
+ * their validation wiring and the status defaults are common.
+ */
+export function AdminEditAttendanceModal({
+    target, onClose,
 }: {
-    isOpen: boolean;
+    target: EditTarget | null;
     onClose: () => void;
-    record: AttendanceRow | null;
-    employeeProfile: Employee | null;
 }) {
     const updateAttendance = useUpdateAttendanceRecord();
     const [values, setValues] = useState<AttendanceFormValues>({
@@ -45,22 +61,32 @@ export default function EditAttendanceModal({
     });
     const [error, setError] = useState('');
 
-    // Re-seed when a different record is opened, during render instead of in an
-    // effect — an effect would cascade a second render every time the modal
-    // opens, and `set-state-in-effect` flags exactly this pattern.
+    const { data: settings } = useEffectiveSettings(target?.employee.department, {
+        enabled: !!target?.employee.department,
+    });
+
+    const hours = {
+        start: settings?.attendance?.workStartTime || '09:30',
+        end: settings?.attendance?.workEndTime || '17:30',
+    };
+
+    const dayKey = target ? localDateKey(target.day) : '';
+
+    // Re-seed when a different cell is opened, during render instead of in an
+    // effect — an effect would cascade a second render on every open, and
+    // `set-state-in-effect` flags exactly this pattern. Keyed on employee+day
+    // because the same day is editable for many employees.
+    const targetKey = target ? `${target.employee._id}:${dayKey}` : null;
     const [seededFor, setSeededFor] = useState<string | null>(null);
-    const recordKey = isOpen && record ? record.date : null;
-    if (recordKey !== seededFor) {
-        setSeededFor(recordKey);
-        if (record && isOpen) {
-            setValues(seedValues(record));
+    if (targetKey !== seededFor) {
+        setSeededFor(targetKey);
+        if (target) {
+            setValues(seedValues(target.row, dayKey, hours));
             setError('');
         }
     }
 
-    if (!record) return null;
-
-    const dayKey = localDateKey(new Date(record.date));
+    if (!target) return null;
 
     const handleSubmit = () => {
         const absent = values.status === 'absent';
@@ -79,21 +105,22 @@ export default function EditAttendanceModal({
 
         updateAttendance.mutate(
             {
-                recordId: record._id || 'new',
+                recordId: target.row._id || 'new',
                 updateData: {
                     status: values.status,
                     checkIn: absent ? null : toIso(values.checkIn),
                     checkOut: absent ? null : toIso(values.checkOut),
-                    // An absent day has no stored record, so identify the day
-                    // the row stands for.
-                    ...(record._id
+                    // A day with no stored record needs identifying. `dayKey` is
+                    // local-time, so the day never shifts backwards for anyone
+                    // east of UTC.
+                    ...(target.row._id
                         ? {}
-                        : { employeeId: employeeProfile?.employeeId, date: record.date }),
+                        : { employeeId: target.employee.employeeId, date: dayKey }),
                 },
             },
             {
                 // No manual refetch: the mutation invalidates the attendance
-                // keys on success, which refreshes the list on its own.
+                // keys on success, which refreshes the grid on its own.
                 onSuccess: onClose,
                 onError: (err: Error) =>
                     setError(err.message || 'Failed to update the attendance record.'),
@@ -101,13 +128,12 @@ export default function EditAttendanceModal({
         );
     };
 
-    const displayDate = new Date(record.date);
-    const employeeName = [employeeProfile?.firstName, employeeProfile?.lastName]
+    const employeeName = [target.employee.firstName, target.employee.lastName]
         .filter(Boolean).join(' ');
 
     return (
         <Dialog
-            open={isOpen}
+            open
             onOpenChange={(next) => {
                 if (!next && updateAttendance.isPending) return;
                 if (!next) onClose();
@@ -117,11 +143,9 @@ export default function EditAttendanceModal({
                 <DialogHeader>
                     <DialogTitle>Edit attendance</DialogTitle>
                     <DialogDescription>
-                        {isNaN(displayDate.getTime())
-                            ? 'Update this attendance record.'
-                            : displayDate.toLocaleDateString('en-GB', {
-                                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-                            })}
+                        {target.day.toLocaleDateString('en-GB', {
+                            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                        })}
                         {employeeName ? ` · ${employeeName}` : ''}
                     </DialogDescription>
                 </DialogHeader>
@@ -131,7 +155,7 @@ export default function EditAttendanceModal({
                     onChange={setValues}
                     baseDate={dayKey}
                     error={error}
-                    errorId="edit-attendance-error"
+                    errorId="admin-attendance-error"
                 />
 
                 <DialogFooter className="gap-2 sm:gap-0">

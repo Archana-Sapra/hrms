@@ -22,7 +22,7 @@ import { EmployeeProfile } from './components/EmployeeProfile';
 import { employeeDisplayName } from './employeeName';
 import InactiveEmployees from './InactiveEmployees';
 import EditAttendanceModal from './attendance/EditAttendanceModal';
-import type { AttendanceRow } from './attendance/types';
+import type { AttendanceRow } from '@/components/attendance/types';
 import type { Employee } from '../../../types';
 import type { UpdateEmployeeDto } from '../../../types';
 

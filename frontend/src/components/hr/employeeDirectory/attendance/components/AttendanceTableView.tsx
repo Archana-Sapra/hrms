@@ -1,9 +1,9 @@
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AttendanceStatusBadge, AttendanceStatusIcon } from './AttendanceStatus';
-import { formatClock, formatDay, formatShortDate } from '../formatters';
-import type { AttendanceRow } from '../types';
+import { AttendanceStatusBadge, AttendanceStatusIcon } from '@/components/attendance/components/AttendanceStatus';
+import { formatClock, formatDay, formatShortDate } from '@/components/attendance/formatters';
+import type { AttendanceRow } from '@/components/attendance/types';
 
 /** Desktop presentation: a real table with real header semantics. */
 export function AttendanceTableView({

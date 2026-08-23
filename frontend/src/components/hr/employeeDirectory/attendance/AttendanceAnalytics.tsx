@@ -1,5 +1,5 @@
 import { CheckCircle, AlertCircle, XCircle, Calendar, Clock } from 'lucide-react';
-import type { AttendanceStatistics } from './types';
+import type { AttendanceStatistics } from '@/components/attendance/types';
 
 export type { AttendanceStatistics };
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AttendanceRow } from './types';
+import type { AttendanceRow } from '@/components/attendance/types';
 
 /**
  * Bulk selection keyed by date string rather than `_id`, because absent days

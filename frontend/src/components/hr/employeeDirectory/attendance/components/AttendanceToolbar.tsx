@@ -7,7 +7,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import EnhancedDatePicker from '@/components/ui/enhanced-datepicker';
-import { localDateKey } from '../types';
+import { localDateKey } from '@/components/attendance/types';
 import { monthRange, isWholeMonth } from '../useAttendanceRange';
 import type { DateRange } from '../useAttendanceRange';
 import type { SortOrder, StatusFilter } from '../useAttendanceRecords';

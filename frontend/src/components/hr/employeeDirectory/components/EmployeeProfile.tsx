@@ -5,7 +5,7 @@ import { ProfileFields } from './ProfileFields';
 import LeaveSection from '../LeaveSection';
 import DocumentManager from '../DocumentManager';
 import AttendanceTable from '../attendance/AttendanceTable';
-import type { AttendanceRow } from '../attendance/types';
+import type { AttendanceRow } from '@/components/attendance/types';
 import type { Employee, Leave } from '@/types';
 
 export function EmployeeProfile({

@@ -15,8 +15,8 @@ import {
 import { useAttendanceRecords } from './useAttendanceRecords';
 import { useAttendanceSelection } from './useAttendanceSelection';
 import { useAttendanceRange } from './useAttendanceRange';
-import { localDateKey } from './types';
-import type { AttendanceFormValues, AttendanceRow } from './types';
+import { localDateKey } from '@/components/attendance/types';
+import type { AttendanceFormValues, AttendanceRow } from '@/components/attendance/types';
 import type { Employee } from '@/types';
 
 /** Rebuild the ISO instant for a given day from the time part of a

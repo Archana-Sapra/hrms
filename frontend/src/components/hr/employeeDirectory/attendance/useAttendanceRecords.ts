@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useEmployeeAttendanceWithAbsents } from '@/hooks/queries';
 import type { DateRange } from './useAttendanceRange';
-import type { AttendanceStatistics, AttendanceRow, EffectiveRange } from './types';
+import type { AttendanceStatistics, AttendanceRow, EffectiveRange } from '@/components/attendance/types';
 
 export const RECORDS_PER_PAGE = 7;
 
