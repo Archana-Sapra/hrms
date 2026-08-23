@@ -1,234 +1,146 @@
-import React from 'react';
-import { FileText, User, Shield, GraduationCap, Upload, Eye, Plus, X } from 'lucide-react';
+import { useState } from 'react';
+import { User, Shield, GraduationCap, type LucideIcon } from 'lucide-react';
 import { useToast } from '../../ui/toast';
 import BusyOverlay from '../../ui/BusyOverlay';
 import { useEmployeeDocuments, useUploadDocument, useDeleteDocument } from '@/hooks/queries';
-import { Document, DocumentType } from '@/types';
-import { LucideIcon } from 'lucide-react';
-
-interface EmployeeProfile {
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface DocumentManagerProps {
-  employeeProfile: EmployeeProfile;
-  onBack: () => void;
-}
+import { DocumentCard } from './documents/DocumentCard';
+import { DeleteDocumentDialog } from './documents/DeleteDocumentDialog';
+import type { Document, DocumentType } from '@/types';
 
 interface DocumentTypeConfig {
-  key: DocumentType;
-  label: string;
-  icon: LucideIcon;
-  accept: string;
+    key: DocumentType;
+    label: string;
+    icon: LucideIcon;
+    accept: string;
 }
 
-const DocumentManager: React.FC<DocumentManagerProps> = ({ employeeProfile, onBack: _onBack }) => {
-  const { toast } = useToast();
-
-  const documentTypes: DocumentTypeConfig[] = [
+const DOCUMENT_TYPES: DocumentTypeConfig[] = [
     { key: 'profile_picture', label: 'Profile Photo', icon: User, accept: 'image/*' },
     { key: 'aadhaar', label: 'Aadhaar Card', icon: Shield, accept: '.pdf,.jpg,.jpeg,.png' },
     { key: 'pan', label: 'PAN Card', icon: Shield, accept: '.pdf,.jpg,.jpeg,.png' },
     { key: '10th_marksheet', label: '10th Certificate', icon: GraduationCap, accept: '.pdf,.jpg,.jpeg,.png' },
     { key: '12th_marksheet', label: '12th Certificate', icon: GraduationCap, accept: '.pdf,.jpg,.jpeg,.png' },
     { key: 'college_marksheet', label: 'College Certificate', icon: GraduationCap, accept: '.pdf,.jpg,.jpeg,.png' },
-  ];
+];
 
-  // Fetch documents for this employee
-  const { data: documents = [], isLoading: loading } = useEmployeeDocuments(employeeProfile?.employeeId, {
-    enabled: !!employeeProfile?.employeeId
-  });
+/**
+ * Document slots for one employee.
+ *
+ * Cards size to their content and the grid is denser. The previous build gave
+ * every slot `min-h-70` and `p-6` inside a `gap-6` three-column grid, so six
+ * slots — five of them usually empty — filled the viewport with padding.
+ */
+export default function DocumentManager({
+    employeeProfile,
+}: {
+    employeeProfile: { employeeId: string; firstName: string; lastName: string };
+    /** Accepted for call-site compatibility; the tab owns its own navigation. */
+    onBack?: () => void;
+}) {
+    const { toast } = useToast();
+    const [pendingDelete, setPendingDelete] = useState<
+        { doc: Document; label: string } | null
+    >(null);
 
-  const uploadMutation = useUploadDocument();
-  const deleteMutation = useDeleteDocument();
-
-  const handleFileUpload = (docType: DocumentType, file: File): void => {
-    uploadMutation.mutate({
-      employeeId: employeeProfile.employeeId,
-      documentType: docType,
-      file,
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Document uploaded successfully",
-          variant: "default"
-        });
-      },
-      onError: (error: Error) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to upload document",
-          variant: "error"
-        });
-      }
-    });
-  };
-
-  const handleFileDelete = (documentId: string, docType: DocumentType): void => {
-    deleteMutation.mutate({
-      documentId,
-      employeeId: employeeProfile.employeeId,
-      documentType: docType,
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Document deleted successfully",
-          variant: "default"
-        });
-      },
-      onError: (error: Error) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to delete document",
-          variant: "error"
-        });
-      }
-    });
-  };
-
-  const getDocumentForType = (docType: DocumentType): Document | undefined => {
-    return documents.find(doc => doc.documentType === docType);
-  };
-
-  const isImage = (fileName: string): boolean => {
-    return /\.(jpg|jpeg|png|gif)$/i.test(fileName);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-full items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading documents...</div>
-      </div>
+    const { data: documents = [], isLoading } = useEmployeeDocuments(
+        employeeProfile?.employeeId,
+        { enabled: !!employeeProfile?.employeeId },
     );
-  }
 
-  return (
-    <div className="min-h-full bg-background">
-      {/* Document Grid */}
-      <div className="p-0">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {documentTypes.map((docType) => {
-            const IconComponent = docType.icon;
-            const existingDoc = getDocumentForType(docType.key);
+    const uploadMutation = useUploadDocument();
+    const deleteMutation = useDeleteDocument();
+    const busy = uploadMutation.isPending || deleteMutation.isPending;
 
-            return (
-              <div key={docType.key} className="min-h-70 overflow-hidden rounded-lg border border-border bg-card p-6 transition-shadow hover:shadow-md">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="rounded-lg bg-muted p-2">
-                    <IconComponent className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                  </div>
-                  <h3 className="font-medium text-foreground">{docType.label}</h3>
-                </div>
+    // No client-side size cap: the limit lives in the backend
+    // (`utils/uploadLimits.ts`) and is enforced by multer and
+    // `fileValidationService`, which returns the message shown below. Repeating
+    // the number here would be a second source of truth that silently drifts
+    // the moment the real one changes.
+    const handleUpload = (docType: DocumentType, label: string, file: File) => {
+        uploadMutation.mutate(
+            { employeeId: employeeProfile.employeeId, documentType: docType, file },
+            {
+                onSuccess: () => toast({ title: `${label} uploaded` }),
+                onError: (error: Error) => toast({
+                    variant: 'error',
+                    title: 'Upload failed',
+                    description: error.message || 'Please try again.',
+                }),
+            },
+        );
+    };
 
-                {existingDoc ? (
-                  /* Document exists - show preview with actions */
-                  <div className="space-y-4">
-                    {/* Document preview */}
-                    {isImage(existingDoc.fileName) ? (
-                      <div className="h-32 overflow-hidden rounded-lg bg-muted">
-                        <img
-                          src={existingDoc.s3Url}
-                          alt={existingDoc.fileName}
-                          className="h-full w-full object-cover"
+    const handleConfirmDelete = () => {
+        if (!pendingDelete) return;
+        const { doc, label } = pendingDelete;
+
+        deleteMutation.mutate(
+            {
+                documentId: doc._id,
+                employeeId: employeeProfile.employeeId,
+                documentType: doc.documentType,
+            },
+            {
+                onSuccess: () => {
+                    setPendingDelete(null);
+                    toast({ title: `${label} deleted` });
+                },
+                onError: (error: Error) => {
+                    setPendingDelete(null);
+                    toast({
+                        variant: 'error',
+                        title: 'Delete failed',
+                        description: error.message || 'Please try again.',
+                    });
+                },
+            },
+        );
+    };
+
+    if (isLoading) {
+        return (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading documents">
+                {DOCUMENT_TYPES.map((d) => (
+                    <div key={d.key} className="h-32 animate-pulse rounded-xl bg-muted" />
+                ))}
+            </div>
+        );
+    }
+
+    const uploadedCount = DOCUMENT_TYPES
+        .filter((d) => documents.some((doc) => doc.documentType === d.key)).length;
+
+    return (
+        <div className="space-y-3">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+                {uploadedCount} of {DOCUMENT_TYPES.length} documents uploaded
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {DOCUMENT_TYPES.map((docType) => {
+                    const doc = documents.find((d) => d.documentType === docType.key);
+                    return (
+                        <DocumentCard
+                            key={docType.key}
+                            docType={docType}
+                            document={doc}
+                            disabled={busy}
+                            onUpload={(file) => handleUpload(docType.key, docType.label, file)}
+                            onDelete={() => doc && setPendingDelete({ doc, label: docType.label })}
                         />
-                      </div>
-                    ) : (
-                      <div className="flex h-32 items-center justify-center rounded-lg bg-muted">
-                        <FileText className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
-                      </div>
-                    )}
+                    );
+                })}
+            </div>
 
-                    {/* File info */}
-                    <div className="space-y-2">
-                      <p className="truncate text-sm font-medium text-foreground" title={existingDoc.fileName}>
-                        {existingDoc.fileName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(existingDoc.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
+            <DeleteDocumentDialog
+                label={pendingDelete?.label ?? null}
+                fileName={pendingDelete?.doc.fileName}
+                onCancel={() => setPendingDelete(null)}
+                onConfirm={handleConfirmDelete}
+                isPending={deleteMutation.isPending}
+            />
 
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <a
-                        href={existingDoc.s3Url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
-                      >
-                        <Eye className="h-4 w-4" aria-hidden="true" />
-                        View
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleFileDelete(existingDoc._id, docType.key)}
-                        aria-label={`Delete ${docType.label}`}
-                        className="rounded-md bg-muted px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
-
-                    {/* Replace option */}
-                    <div className="border-t border-border pt-3">
-                      <label className="flex cursor-pointer items-center justify-center gap-2 px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                        <Upload className="h-4 w-4" aria-hidden="true" />
-                        Replace
-                        <input
-                          type="file"
-                          accept={docType.accept}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleFileUpload(docType.key, file);
-                          }}
-                          className="hidden"
-                          disabled={uploadMutation.isPending || deleteMutation.isPending}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ) : (
-                  /* No document - show upload */
-                  <div className="space-y-4">
-                    <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-border transition-colors hover:border-primary/50">
-                      <label className="flex cursor-pointer flex-col items-center gap-2 p-4 text-center">
-                        <div className="rounded-full bg-muted p-3">
-                          <Plus className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Upload Document</p>
-                          <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG</p>
-                        </div>
-                        <input
-                          type="file"
-                          accept={docType.accept}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleFileUpload(docType.key, file);
-                          }}
-                          className="hidden"
-                          disabled={uploadMutation.isPending || deleteMutation.isPending}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+            <BusyOverlay show={uploadMutation.isPending} message="Uploading…" />
         </div>
-
-        <BusyOverlay
-          show={uploadMutation.isPending || deleteMutation.isPending}
-          message="Uploading..."
-        />
-      </div>
-    </div>
-  );
-};
-
-export default DocumentManager;
+    );
+}

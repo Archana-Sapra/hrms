@@ -1,3 +1,9 @@
+import {
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_MB,
+  ALLOWED_UPLOAD_MIME_TYPES,
+} from '../utils/uploadLimits.js';
+
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
@@ -12,12 +18,11 @@ class FileValidationService {
       return { isValid: false, errors };
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      errors.push('File size exceeds 10MB limit');
+    if (file.size > MAX_UPLOAD_BYTES) {
+      errors.push(`File size exceeds ${MAX_UPLOAD_MB}MB limit`);
     }
 
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
-    if (!allowedTypes.includes(file.mimetype)) {
+    if (!(ALLOWED_UPLOAD_MIME_TYPES as readonly string[]).includes(file.mimetype)) {
       errors.push('File type not supported. Please use JPEG, PNG, GIF, or PDF files');
     }
 

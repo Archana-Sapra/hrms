@@ -1,264 +1,204 @@
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { MapPin, Clock, User, AlertCircle } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
+import { MapPin, LogIn, LogOut, ExternalLink, Copy, Check, MapPinOff } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
-// Fix for default markers in React Leaflet
-// @ts-expect-error - Leaflet type definitions don't include _getIconUrl
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Custom marker icon
-const customIcon = new L.Icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// Leaflet and its CSS are ~150kB that only matter once someone opens a pin.
+const MapCanvas = lazy(() =>
+    import('./locationModal/MapCanvas').then((m) => ({ default: m.MapCanvas })),
+);
 
 interface Location {
-  latitude?: number;
-  longitude?: number;
+    latitude?: number;
+    longitude?: number;
 }
 
 interface AttendanceRecord {
-  date?: string | Date;
-  checkIn?: string | Date;
-  checkOut?: string | Date;
-  status?: 'present' | 'absent' | 'half-day' | string;
-  location?: Location;
+    date?: string | Date;
+    checkIn?: string | Date;
+    checkOut?: string | Date;
+    status?: string;
+    location?: Location;
 }
 
 interface EmployeeProfile {
-  firstName?: string;
-  lastName?: string;
-  employeeId?: string;
-  department?: string;
+    firstName?: string;
+    lastName?: string;
+    employeeId?: string;
+    department?: string;
 }
 
-interface LocationMapModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  attendanceRecord?: AttendanceRecord | null;
-  employeeProfile?: EmployeeProfile | null;
-}
-
-const LocationMapModal = ({
-  isOpen,
-  onClose,
-  attendanceRecord,
-  employeeProfile
-}: LocationMapModalProps) => {
-  const mapRef = useRef<L.Map | null>(null);
-
-  useEffect(() => {
-    if (isOpen && mapRef.current) {
-      // Force map to resize when modal opens
-      setTimeout(() => {
-        mapRef.current?.invalidateSize();
-      }, 100);
-    }
-  }, [isOpen]);
-
-  const hasLocation = attendanceRecord?.location?.latitude && attendanceRecord?.location?.longitude;
-  const latitude = attendanceRecord?.location?.latitude || 0;
-  const longitude = attendanceRecord?.location?.longitude || 0;
-
-  const formatDate = (date?: string | Date): string => {
-    if (!date) return "N/A";
-    return new Intl.DateTimeFormat('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(new Date(date));
-  };
-
-  const formatTime = (date?: string | Date): string => {
-    if (!date) return "N/A";
-    return new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).format(new Date(date));
-  };
-
-  const getStatusColor = (status?: string): string => {
-    switch (status) {
-      case 'present': return 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/20 dark:border-green-800';
-      case 'absent': return 'text-red-600 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-900/20 dark:border-red-800';
-      case 'half-day': return 'text-blue-600 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-900/20 dark:border-blue-800';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-900/20 dark:border-gray-800';
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col gap-0 p-0">
-        {/* Header */}
-        <DialogHeader className="flex-row items-center gap-3 space-y-0 p-6 pr-14 border-b border-slate-200 dark:border-slate-700 text-left">
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-            <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <DialogTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Check-in Location
-            </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-              {formatDate(attendanceRecord?.date)}
-            </DialogDescription>
-          </div>
-        </DialogHeader>
-
-        {/* Employee Info */}
-        <div className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-blue-600 text-white rounded-lg">
-              <User className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-900 dark:text-slate-100">
-                {employeeProfile?.firstName} {employeeProfile?.lastName}
-              </h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                ID: {employeeProfile?.employeeId} • {employeeProfile?.department}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Check In</span>
-              </div>
-              <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {formatTime(attendanceRecord?.checkIn)}
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Check Out</span>
-              </div>
-              <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {formatTime(attendanceRecord?.checkOut)}
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-4 h-4 rounded-full bg-slate-500"></div>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</span>
-              </div>
-              <span className={`inline-flex px-2 py-1 rounded-full text-sm font-medium border ${getStatusColor(attendanceRecord?.status)}`}>
-                {attendanceRecord?.status ? attendanceRecord.status.charAt(0).toUpperCase() + attendanceRecord.status.slice(1) : 'N/A'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Map Content */}
-        <div className="p-6 flex-grow overflow-y-auto">
-          {hasLocation ? (
-            <div className="space-y-4">
-              {/* Coordinates Display */}
-              <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-500" />
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Coordinates</span>
-                  </div>
-                  <button
-                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`, '_blank')}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs transition-colors flex items-center gap-1"
-                  >
-                    <MapPin className="w-3 h-3" />
-                    Open in Map
-                  </button>
-                </div>
-                <p className="text-sm font-mono text-slate-700 dark:text-slate-300">
-                  Latitude: {latitude.toFixed(6)}, Longitude: {longitude.toFixed(6)}
-                </p>
-              </div>
-
-              {/* Map Container */}
-              <div className="h-96 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600">
-                <MapContainer
-                  center={[latitude, longitude]}
-                  zoom={15}
-                  style={{ height: '100%', width: '100%' }}
-                  ref={(instance) => {
-                    if (instance) {
-                      mapRef.current = instance;
-                    }
-                  }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <Marker position={[latitude, longitude]} icon={customIcon}>
-                    <Popup>
-                      <div className="text-center">
-                        <h4 className="font-semibold text-slate-900 mb-1">
-                          {employeeProfile?.firstName} {employeeProfile?.lastName}
-                        </h4>
-                        <p className="text-sm text-slate-600 mb-2">
-                          Checked in at {formatTime(attendanceRecord?.checkIn)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDate(attendanceRecord?.date)}
-                        </p>
-                      </div>
-                    </Popup>
-                  </Marker>
-                </MapContainer>
-              </div>
-
-
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 max-w-md mx-auto">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <AlertCircle className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
-                  <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
-                    No Location Data
-                  </h3>
-                </div>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
-                  This attendance record doesn't contain location information.
-                  Location data is only available for check-ins made after the location feature was enabled.
-                </p>
-                <div className="bg-yellow-100 dark:bg-yellow-900/40 p-3 rounded-lg">
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-                    Note: Location tracking requires user permission and is optional for check-ins.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+const formatDate = (date?: string | Date): string => {
+    if (!date) return '';
+    const d = new Date(date);
+    return isNaN(d.getTime())
+        ? ''
+        : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-export default LocationMapModal;
+const formatTime = (date?: string | Date): string => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return isNaN(d.getTime())
+        ? '—'
+        : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const statusVariant = (status?: string) => {
+    switch (status) {
+        case 'present': return 'success' as const;
+        case 'absent': return 'error' as const;
+        case 'half-day': return 'primary' as const;
+        default: return 'default' as const;
+    }
+};
+
+/** One check-in time, shown inline rather than as its own card. */
+function TimeStat({ icon: Icon, label, value }: {
+    icon: typeof LogIn; label: string; value: string;
+}) {
+    return (
+        <div className="flex items-center gap-1.5">
+            <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="text-muted-foreground">{label}</span>
+            <span className="font-medium text-foreground">{value}</span>
+        </div>
+    );
+}
+
+/**
+ * Where someone checked in from.
+ *
+ * The map is the content, so the map gets the space. The previous build stacked
+ * four full-width chrome bands above it — a header, a gradient employee panel,
+ * a three-card time/status grid, and a coordinates bar — which pushed the map
+ * below the fold on a laptop and off-screen entirely on a phone. Everything
+ * except the map is now one compact strip: identity in the header, times and
+ * status in a single meta row, coordinates behind a copy button.
+ *
+ * Styling is on `@theme` tokens throughout; the previous build had roughly
+ * twenty raw `slate-`/`blue-`/`yellow-` pairs and a `from-blue-50 to-cyan-50`
+ * gradient that existed only on the light theme.
+ */
+export default function LocationMapModal({
+    isOpen, onClose, attendanceRecord, employeeProfile,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    attendanceRecord?: AttendanceRecord | null;
+    employeeProfile?: EmployeeProfile | null;
+}) {
+    const [copied, setCopied] = useState(false);
+
+    const lat = attendanceRecord?.location?.latitude;
+    const lng = attendanceRecord?.location?.longitude;
+    const hasLocation = typeof lat === 'number' && typeof lng === 'number'
+        && Number.isFinite(lat) && Number.isFinite(lng);
+
+    const name = [employeeProfile?.firstName, employeeProfile?.lastName]
+        .filter(Boolean).join(' ') || 'Employee';
+    const dateLabel = formatDate(attendanceRecord?.date);
+
+    const coords = hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : '';
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(coords);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard is unavailable over plain HTTP and in some in-app
+            // browsers. The coordinates stay visible and selectable, so
+            // failing quietly is better than an error toast for a convenience.
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            {/* Near-full-height on mobile so the map is usable; a comfortable
+                panel on desktop. `p-0` because the map must reach the edges. */}
+            <DialogContent className="flex h-[92dvh] max-h-[92dvh] w-[calc(100%-1rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[85vh]">
+                <DialogHeader className="shrink-0 space-y-0 border-b border-border p-4 pr-12 text-left">
+                    <DialogTitle className="truncate text-base font-semibold">{name}</DialogTitle>
+                    <DialogDescription className="truncate text-xs">
+                        {[employeeProfile?.employeeId, employeeProfile?.department, dateLabel]
+                            .filter(Boolean).join(' · ')}
+                    </DialogDescription>
+                </DialogHeader>
+
+                {/* One meta row replaces three stat cards. */}
+                <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-muted/40 px-4 py-2.5 text-sm">
+                    <TimeStat icon={LogIn} label="In" value={formatTime(attendanceRecord?.checkIn)} />
+                    <TimeStat icon={LogOut} label="Out" value={formatTime(attendanceRecord?.checkOut)} />
+                    {attendanceRecord?.status && (
+                        <Badge variant={statusVariant(attendanceRecord.status)} className="ml-auto">
+                            {attendanceRecord.status.charAt(0).toUpperCase() + attendanceRecord.status.slice(1)}
+                        </Badge>
+                    )}
+                </div>
+
+                {hasLocation ? (
+                    <>
+                        {/* The map takes every pixel the panel can spare. */}
+                        <div className="min-h-0 flex-1 bg-muted">
+                            <Suspense
+                                fallback={
+                                    <div className="flex h-full items-center justify-center">
+                                        <span className="text-sm text-muted-foreground">Loading map…</span>
+                                    </div>
+                                }
+                            >
+                                <MapCanvas latitude={lat} longitude={lng} label={name} />
+                            </Suspense>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2 border-t border-border p-3">
+                            <MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            <code className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+                                {coords}
+                            </code>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-11 shrink-0 sm:size-9"
+                                onClick={handleCopy}
+                                aria-label={copied ? 'Coordinates copied' : 'Copy coordinates'}
+                            >
+                                {copied
+                                    ? <Check className="size-4" aria-hidden="true" />
+                                    : <Copy className="size-4" aria-hidden="true" />}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="h-11 shrink-0 sm:h-9"
+                                onClick={() => window.open(
+                                    `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+                                    '_blank', 'noopener,noreferrer',
+                                )}
+                            >
+                                <ExternalLink className="size-4 sm:mr-1.5" aria-hidden="true" />
+                                <span className="sr-only sm:not-sr-only">Open in Maps</span>
+                            </Button>
+                        </div>
+                    </>
+                ) : (
+                    /* One quiet line, not a three-paragraph yellow warning
+                       panel. Missing location is normal, not an error. */
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+                        <MapPinOff className="size-8 text-muted-foreground opacity-40" aria-hidden="true" />
+                        <div>
+                            <p className="font-medium text-foreground">No location recorded</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Location is optional and depends on the employee granting permission
+                                at check-in.
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
