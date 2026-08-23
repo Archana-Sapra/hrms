@@ -223,9 +223,11 @@ Both new endpoints follow the project rule: schema in
   enum and from `STATUS_FILTERS_BY_TYPE.password`. Nothing in the codebase ever
   sets either — verified by grep — so they are two filter options that can
   never match a row.
-- **Rename `newPassword` → `newPasswordHash`** in `PasswordResetRequest`. The
-  field holds a bcrypt hash; the current name invites someone to log it or
-  return it in a response. Requires a migration note for existing documents.
+- **Document that `PasswordResetRequest.newPassword` holds a bcrypt hash**, with
+  a comment on the field. A rename to `newPasswordHash` was considered and
+  rejected: the field is never logged or returned today, a bcrypt hash is not a
+  plaintext secret, and the rename would require a migration on the
+  authentication path — disproportionate cost for a naming improvement.
 - **The password approve button says "Approve & Generate Token"**
   (`AdminRequestsPage.tsx:909`). It generates no token. Rename to
   **"Approve & Set Password"**.
@@ -269,16 +271,10 @@ There is no test suite, per CLAUDE.md. Verification is:
   containing a deliberately un-approvable regularization, to confirm partial
   failure is reported accurately rather than swallowed.
 - Confirming a password reset approval still lets the employee sign in with the
-  password they submitted — the field rename touches the one path that would
-  silently break authentication.
+  password they submitted. No change in scope touches the stored field, but this
+  is the one path that would fail silently, so it is checked by hand.
 
 ## Risks
-
-**The `newPassword` → `newPasswordHash` rename touches authentication.** Any
-pending request documents written before the rename keep the old field name.
-The migration must handle in-flight rows, or pending resets will approve with
-an `undefined` password. Safest sequence: deploy a controller that reads
-`newPasswordHash ?? newPassword`, migrate the documents, then drop the fallback.
 
 **The regularization bulk loop is the largest new surface.** Extracting the
 single-record logic into a shared service is a refactor of a controller with
