@@ -86,8 +86,8 @@ export const updateExpense = asyncHandler(async (req: IAuthRequest, res: Respons
   if (expense.status === 'rejected') {
     expense.status = 'pending';
     expense.reviewComment = undefined;
-    expense.approvedBy = null;
-    expense.approvedAt = null;
+    expense.approvedBy = undefined;
+    expense.approvedAt = undefined;
   }
 
   await expense.save();
