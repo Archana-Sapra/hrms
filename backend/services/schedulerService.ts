@@ -4,6 +4,7 @@ import Holiday from '../models/Holiday.model.js';
 import Employee from '../models/Employee.model.js';
 import Attendance from '../models/Attendance.model.js';
 import Settings from '../models/Settings.model.js';
+import RegularizationRequest from '../models/Regularization.model.js';
 import NotificationService from './notificationService.js';
 import EmailService from './emailService.js';
 import { getISTNow, toIST } from '../utils/timezone.js';
@@ -15,6 +16,7 @@ class SchedulerService {
   private milestoneJob: ScheduledTask | null = null;
   private birthdayJob: ScheduledTask | null = null;
   private dailyHrAttendanceReportJob: ScheduledTask | null = null;
+  private regularizationCleanupJob: ScheduledTask | null = null;
   private isRunning: boolean = false;
 
   constructor() {
@@ -22,6 +24,7 @@ class SchedulerService {
     this.milestoneJob = null;
     this.birthdayJob = null;
     this.dailyHrAttendanceReportJob = null;
+    this.regularizationCleanupJob = null;
     this.isRunning = false;
   }
 
@@ -51,6 +54,13 @@ class SchedulerService {
       timezone: 'Asia/Kolkata'
     });
 
+    // Regularization retention cleanup job - runs daily at 2 AM (off-peak)
+    this.regularizationCleanupJob = cron.schedule('0 2 * * *', async () => {
+      await this.cleanupOldRegularizations();
+    }, {
+      timezone: 'Asia/Kolkata'
+    });
+
     this.isRunning = true;
     logger.info('Scheduler service started successfully');
   }
@@ -76,6 +86,11 @@ class SchedulerService {
     if (this.dailyHrAttendanceReportJob) {
       this.dailyHrAttendanceReportJob.stop();
       this.dailyHrAttendanceReportJob = null;
+    }
+
+    if (this.regularizationCleanupJob) {
+      this.regularizationCleanupJob.stop();
+      this.regularizationCleanupJob = null;
     }
 
     this.isRunning = false;
@@ -248,10 +263,47 @@ class SchedulerService {
     }
   }
 
+  async cleanupOldRegularizations() {
+    try {
+      const settings = await Settings.getGlobalSettings();
+      const retentionConfig = settings.requestRetention.regularization;
+
+      if (!retentionConfig.enabled) {
+        logger.info('[Scheduler] Regularization retention cleanup is disabled');
+        return;
+      }
+
+      const result = await this.deleteOldRegularizations(retentionConfig.retentionMonths);
+
+      logger.info(
+        `[Scheduler] Regularization retention cleanup: deleted ${result.deletedCount} request(s) older than ${retentionConfig.retentionMonths} month(s)`
+      );
+    } catch (error: any) {
+      logger.error({ err: error }, '[Scheduler] Error in regularization retention cleanup');
+    }
+  }
+
+  /**
+   * Shared by the scheduled job and the manual "Run Now" trigger, which
+   * deletes by whatever retention period is passed in - it does not consult
+   * the `enabled` flag, so it works even while auto-delete is turned off.
+   */
+  async deleteOldRegularizations(retentionMonths: 1 | 2 | 3 | 6 | 12): Promise<{ deletedCount?: number }> {
+    const cutoff = getISTNow().minus({ months: retentionMonths }).toJSDate();
+    return RegularizationRequest.deleteMany({ createdAt: { $lt: cutoff } });
+  }
+
   // Manual trigger methods for testing
   async triggerHolidayReminder() {
     logger.info('Manually triggering holiday reminder check...');
     await this.checkHolidayReminders();
+  }
+
+  async triggerRegularizationCleanup(retentionMonths: 1 | 2 | 3 | 6 | 12) {
+    logger.info(`Manually triggering regularization retention cleanup (${retentionMonths} month(s))...`);
+    const result = await this.deleteOldRegularizations(retentionMonths);
+    logger.info(`[Scheduler] Manual regularization cleanup: deleted ${result.deletedCount} request(s)`);
+    return result.deletedCount;
   }
 
   async triggerMilestoneCheck() {
@@ -470,7 +522,8 @@ class SchedulerService {
       holidayReminderActive: this.holidayReminderJob ? this.holidayReminderJob.getStatus() === 'scheduled' : false,
       milestoneJobActive: this.milestoneJob ? this.milestoneJob.getStatus() === 'scheduled' : false,
       birthdayJobActive: this.birthdayJob ? this.birthdayJob.getStatus() === 'scheduled' : false,
-      dailyHrAttendanceReportActive: this.dailyHrAttendanceReportJob ? this.dailyHrAttendanceReportJob.getStatus() === 'scheduled' : false
+      dailyHrAttendanceReportActive: this.dailyHrAttendanceReportJob ? this.dailyHrAttendanceReportJob.getStatus() === 'scheduled' : false,
+      regularizationCleanupActive: this.regularizationCleanupJob ? this.regularizationCleanupJob.getStatus() === 'scheduled' : false
     };
   }
 }

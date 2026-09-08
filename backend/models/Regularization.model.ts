@@ -77,6 +77,7 @@ regularizationSchema.index({ employeeId: 1, status: 1 }); // Employee regulariza
 regularizationSchema.index({ status: 1, date: 1 }); // Status-based queries with date sorting
 regularizationSchema.index({ employeeId: 1, date: 1 }); // Employee + date lookup
 regularizationSchema.index({ date: 1 }); // Date range queries
+regularizationSchema.index({ createdAt: 1 }); // Retention cleanup queries
 
 const RegularizationRequest = mongoose.model<IRegularizationDoc>(
   'RegularizationRequest',

@@ -13,12 +13,14 @@ import type {
   AttendanceSettingsData,
   GeneralSettingsData,
   NotificationSettingsData,
+  RequestRetentionSettingsData,
   SettingsFormData,
 } from './types';
 import type {
   AttendanceSettingsSection,
   GeneralSettingsSection,
   NotificationSettingsSection,
+  RequestRetentionSettingsSection,
 } from '@/types';
 
 export const DEFAULT_ATTENDANCE: AttendanceSettingsData = {
@@ -74,10 +76,18 @@ export const DEFAULT_GENERAL: GeneralSettingsData = {
   },
 };
 
+export const DEFAULT_REQUEST_RETENTION: RequestRetentionSettingsData = {
+  regularization: {
+    enabled: false,
+    retentionMonths: 6,
+  },
+};
+
 export const DEFAULT_SETTINGS_FORM: SettingsFormData = {
   attendance: DEFAULT_ATTENDANCE,
   notifications: DEFAULT_NOTIFICATIONS,
   general: DEFAULT_GENERAL,
+  requestRetention: DEFAULT_REQUEST_RETENTION,
 };
 
 /**
@@ -118,5 +128,16 @@ export const mergeGeneral = (
   geofence: {
     ...DEFAULT_GENERAL.geofence,
     ...section?.geofence,
+  },
+});
+
+export const mergeRequestRetention = (
+  section: RequestRetentionSettingsSection | undefined
+): RequestRetentionSettingsData => ({
+  ...DEFAULT_REQUEST_RETENTION,
+  ...section,
+  regularization: {
+    ...DEFAULT_REQUEST_RETENTION.regularization,
+    ...section?.regularization,
   },
 });

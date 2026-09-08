@@ -22,6 +22,7 @@ import {
   mergeAttendance,
   mergeGeneral,
   mergeNotifications,
+  mergeRequestRetention,
 } from './settingsDefaults';
 
 export type SettingsSection = keyof SettingsFormData;
@@ -35,16 +36,19 @@ const NO_SECTIONS_DIRTY: DirtyMap = {
   attendance: false,
   notifications: false,
   general: false,
+  requestRetention: false,
 };
 
 type ServerSettings = Partial<GlobalSettings> | Partial<DepartmentSettings> | undefined;
 
 const toFormData = (data: ServerSettings): SettingsFormData => {
   const notifications = (data as Partial<GlobalSettings> | undefined)?.notifications;
+  const requestRetention = (data as Partial<GlobalSettings> | undefined)?.requestRetention;
   return {
     attendance: mergeAttendance(data?.attendance),
     notifications: mergeNotifications(notifications),
     general: mergeGeneral(data?.general),
+    requestRetention: mergeRequestRetention(requestRetention),
   };
 };
 
@@ -118,6 +122,7 @@ export const useSettingsForm = ({
         attendance: currentDirty.attendance ? current.attendance : next.attendance,
         notifications: currentDirty.notifications ? current.notifications : next.notifications,
         general: currentDirty.general ? current.general : next.general,
+        requestRetention: currentDirty.requestRetention ? current.requestRetention : next.requestRetention,
       };
     });
   }, [serverData, scopeKey]);
@@ -163,7 +168,7 @@ export const useSettingsForm = ({
     });
   }, []);
 
-  const isAnyDirty = dirty.attendance || dirty.notifications || dirty.general;
+  const isAnyDirty = dirty.attendance || dirty.notifications || dirty.general || dirty.requestRetention;
 
   return {
     formData,

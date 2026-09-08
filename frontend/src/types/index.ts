@@ -532,12 +532,20 @@ export interface NotificationSettingsSection {
   };
 }
 
+export interface RequestRetentionSettingsSection {
+  regularization?: {
+    enabled?: boolean;
+    retentionMonths?: 1 | 2 | 3 | 6 | 12;
+  };
+}
+
 export interface GlobalSettings {
   _id: string;
   scope: 'global' | 'department';
   attendance?: AttendanceSettingsSection;
   notifications?: NotificationSettingsSection;
   general?: GeneralSettingsSection;
+  requestRetention?: RequestRetentionSettingsSection;
   lastUpdatedBy?: string;
   createdAt: string;
   updatedAt: string;

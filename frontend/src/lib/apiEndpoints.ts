@@ -219,6 +219,7 @@ export const API_ENDPOINTS = {
     DEPARTMENT_EMPLOYEES: (name: string) => `/settings/departments/${encodeURIComponent(name)}/employees`,
     RESCHEDULE_HR_REPORT: '/settings/daily-hr-attendance-report/reschedule',
     TEST_HR_REPORT: '/settings/daily-hr-attendance-report/test',
+    RUN_REGULARIZATION_CLEANUP: '/settings/regularization-retention/run-now',
   },
 
   // Notifications

@@ -1,4 +1,4 @@
-import type { UpdateGlobalSettingsInput, UpdateDepartmentSettingsInput, CreateDepartmentInput, RenameDepartmentInput, AssignEmployeeToDepartmentInput, GetEffectiveSettingsQuery } from '../validators/settings.schemas.js';
+import type { UpdateGlobalSettingsInput, UpdateDepartmentSettingsInput, CreateDepartmentInput, RenameDepartmentInput, AssignEmployeeToDepartmentInput, GetEffectiveSettingsQuery, RunRegularizationCleanupInput } from '../validators/settings.schemas.js';
 import type { Response } from 'express';
 import Settings from '../models/Settings.model.js';
 import Employee from '../models/Employee.model.js';
@@ -42,9 +42,9 @@ export const getGlobalSettings = async (req: IAuthRequest, res: Response): Promi
 
 export const updateGlobalSettings = async (req: IAuthRequest, res: Response): Promise<void> => {
   try {
-    const { attendance, notifications, general } = req.body as UpdateGlobalSettingsInput;
+    const { attendance, notifications, general, requestRetention } = req.body as UpdateGlobalSettingsInput;
 
-    if (!attendance && !notifications && !general) {
+    if (!attendance && !notifications && !general && !requestRetention) {
       res.status(400).json(formatResponse(false, 'At least one settings section is required'));
       return;
     }
@@ -60,6 +60,7 @@ export const updateGlobalSettings = async (req: IAuthRequest, res: Response): Pr
       if (attendance) newSettings.attendance = attendance;
       if (notifications) newSettings.notifications = notifications;
       if (general) newSettings.general = general;
+      if (requestRetention) newSettings.requestRetention = requestRetention;
 
       settings = new Settings(newSettings);
     } else {
@@ -74,6 +75,10 @@ export const updateGlobalSettings = async (req: IAuthRequest, res: Response): Pr
       if (general) {
         settings.general = mergeSection(settings.general, general);
         settings.markModified('general');
+      }
+      if (requestRetention) {
+        settings.requestRetention = mergeSection(settings.requestRetention, requestRetention);
+        settings.markModified('requestRetention');
       }
       settings.lastUpdatedBy = req.user?._id || settings.lastUpdatedBy;
     }
@@ -562,6 +567,22 @@ export const testDailyHrAttendanceReport = async (req: IAuthRequest, res: Respon
   }
 };
 
+export const runRegularizationCleanup = async (req: IAuthRequest, res: Response): Promise<void> => {
+  try {
+    const { retentionMonths } = req.body as RunRegularizationCleanupInput;
+
+    const deletedCount = await SchedulerService.triggerRegularizationCleanup(retentionMonths);
+
+    res.json(
+      formatResponse(true, `Deleted ${deletedCount} regularization request(s) older than ${retentionMonths} month(s)`, { deletedCount })
+    );
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown error');
+    logger.error({ err }, 'Error running manual regularization cleanup');
+    res.status(500).json(formatResponse(false, 'Failed to run regularization cleanup', err.message));
+  }
+};
+
 export default {
   getGlobalSettings,
   updateGlobalSettings,
@@ -577,5 +598,6 @@ export default {
   assignEmployeeToDepartment,
   getAvailableEmployees,
   rescheduleDailyHrAttendanceReport,
-  testDailyHrAttendanceReport
+  testDailyHrAttendanceReport,
+  runRegularizationCleanup
 };

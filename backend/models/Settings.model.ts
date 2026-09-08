@@ -76,10 +76,22 @@ export interface IGeneralConfig {
   geofence: IGeofenceConfig;
 }
 
+export type RetentionMonths = 1 | 2 | 3 | 6 | 12;
+
+export interface IRegularizationRetentionConfig {
+  enabled: boolean;
+  retentionMonths: RetentionMonths;
+}
+
+export interface IRequestRetentionConfig {
+  regularization: IRegularizationRetentionConfig;
+}
+
 export interface ISettingsDoc extends Document {
   attendance: IAttendanceConfig;
   notifications: INotificationConfig;
   general: IGeneralConfig;
+  requestRetention: IRequestRetentionConfig;
   scope: SettingsScope;
   department?: string;
   lastUpdatedBy?: mongoose.Types.ObjectId;
@@ -235,6 +247,19 @@ const settingsSchema = new Schema<ISettingsDoc>(
           ],
         },
         allowWFHBypass: { type: Boolean, default: true },
+      },
+    },
+    requestRetention: {
+      regularization: {
+        enabled: { type: Boolean, default: false },
+        retentionMonths: {
+          type: Number,
+          enum: {
+            values: [1, 2, 3, 6, 12] as RetentionMonths[],
+            message: 'Retention period must be 1, 2, 3, 6, or 12 months',
+          },
+          default: 6,
+        },
       },
     },
     scope: {

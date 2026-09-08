@@ -12,6 +12,7 @@ import {
     useRescheduleHrReport,
     useTestHrReport,
     useTestNotification,
+    useRunRegularizationCleanup,
 } from '../../hooks/queries';
 
 import SettingsLayout from './settings/SettingsLayout';
@@ -57,6 +58,7 @@ const SettingsPage: React.FC = () => {
     const rescheduleHrReportMutation = useRescheduleHrReport();
     const testHrReportMutation = useTestHrReport();
     const testNotificationMutation = useTestNotification();
+    const runRegularizationCleanupMutation = useRunRegularizationCleanup();
 
     const loading = selectedDepartment ? departmentSettingsLoading : globalSettingsLoading;
     const saving = updateGlobalSettingsMutation.isPending || updateDepartmentSettingsMutation.isPending;
@@ -142,7 +144,7 @@ const SettingsPage: React.FC = () => {
         // Read the value before awaiting — the select is controlled, so it
         // snaps back to `selectedDepartment` while the dialog is open.
         const next = e.target.value;
-        if (dirty.attendance || dirty.notifications || dirty.general) {
+        if (dirty.attendance || dirty.notifications || dirty.general || dirty.requestRetention) {
             const confirmed = await confirm({
                 title: 'Discard unsaved changes?',
                 description: 'You have unsaved changes. Switch scope and discard them?',
@@ -288,6 +290,28 @@ const SettingsPage: React.FC = () => {
         }
     };
 
+    const handleRunRegularizationCleanup = async () => {
+        const months = formData.requestRetention.regularization.retentionMonths;
+        const confirmed = await confirm({
+            title: 'Delete old regularization requests?',
+            description: `This immediately and permanently deletes all regularization requests older than ${months} month${months === 1 ? '' : 's'}, including any still pending review. This cannot be undone.`,
+            confirmText: 'Delete now',
+            destructive: true,
+        });
+        if (!confirmed) return;
+
+        try {
+            const result = await runRegularizationCleanupMutation.mutateAsync(months);
+            toast({
+                variant: 'success',
+                title: 'Cleanup Complete',
+                description: `Deleted ${result?.deletedCount ?? 0} regularization request(s).`
+            });
+        } catch (err) {
+            showError(err, 'Cleanup Failed');
+        }
+    };
+
     const renderContent = () => {
         switch (activeSection) {
             case 'attendance':
@@ -346,6 +370,14 @@ const SettingsPage: React.FC = () => {
                         loading={loading}
                         saving={saving}
                         isDirty={dirty.general}
+                        scopeIsDepartment={!!selectedDepartment}
+                        requestRetention={formData.requestRetention}
+                        onUpdateRequestRetention={(next) => setSection('requestRetention', next)}
+                        onSaveRequestRetention={() => saveSection('requestRetention')}
+                        onResetRequestRetention={() => handleResetSection('requestRetention')}
+                        isRequestRetentionDirty={dirty.requestRetention}
+                        onRunRegularizationCleanup={handleRunRegularizationCleanup}
+                        runningRegularizationCleanup={runRegularizationCleanupMutation.isPending}
                     />
                 );
             case 'appearance':

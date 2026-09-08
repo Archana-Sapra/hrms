@@ -69,10 +69,18 @@ export interface AttendanceSettingsData {
     nonWorkingDays?: number[]; // Present in original JSX
 }
 
+export interface RequestRetentionSettingsData {
+    regularization: {
+        enabled: boolean;
+        retentionMonths: 1 | 2 | 3 | 6 | 12;
+    };
+}
+
 export interface SettingsFormData {
     general: GeneralSettingsData;
     notifications: NotificationSettingsData;
     attendance: AttendanceSettingsData;
+    requestRetention: RequestRetentionSettingsData;
 }
 
 // Re-export specific form data wrapper if used by subcomponents

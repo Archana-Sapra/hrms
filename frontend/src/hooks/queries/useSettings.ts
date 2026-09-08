@@ -260,3 +260,19 @@ export const useTestHrReport = () => {
     },
   });
 };
+
+/**
+ * Immediately delete regularization requests older than retentionMonths,
+ * independent of whether the recurring auto-delete schedule is enabled.
+ */
+export const useRunRegularizationCleanup = () => {
+  return useMutation({
+    mutationFn: async (retentionMonths: 1 | 2 | 3 | 6 | 12) => {
+      const { data } = await axiosInstance.post<ApiResponse<{ deletedCount: number }>>(
+        API_ENDPOINTS.SETTINGS.RUN_REGULARIZATION_CLEANUP,
+        { retentionMonths }
+      );
+      return data.data;
+    },
+  });
+};

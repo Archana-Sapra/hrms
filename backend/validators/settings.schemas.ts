@@ -123,14 +123,33 @@ const generalSection = z
   })
   .strict();
 
+const requestRetentionSection = z
+  .object({
+    regularization: z
+      .object({
+        enabled: z.boolean().optional(),
+        retentionMonths: z.union([
+          z.literal(1),
+          z.literal(2),
+          z.literal(3),
+          z.literal(6),
+          z.literal(12),
+        ]).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 export const updateGlobalSettingsSchema = z
   .object({
     attendance: attendanceSection.nullish(),
     notifications: notificationsSection.nullish(),
     general: generalSection.nullish(),
+    requestRetention: requestRetentionSection.nullish(),
   })
   .refine(
-    (data) => Boolean(data.attendance || data.notifications || data.general),
+    (data) => Boolean(data.attendance || data.notifications || data.general || data.requestRetention),
     { message: 'At least one settings section is required' }
   );
 
@@ -143,6 +162,16 @@ export const updateDepartmentSettingsSchema = z
     (data) => Boolean(data.attendance || data.general),
     { message: 'At least one settings section is required' }
   );
+
+export const runRegularizationCleanupSchema = z.object({
+  retentionMonths: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(6),
+    z.literal(12),
+  ]),
+});
 
 export const getEffectiveSettingsQuerySchema = z.object({
   department: z.string().trim().min(1).max(100).optional(),
@@ -161,6 +190,7 @@ export const assignEmployeeToDepartmentSchema = z.object({
 });
 
 export type GetEffectiveSettingsQuery = z.infer<typeof getEffectiveSettingsQuerySchema>;
+export type RunRegularizationCleanupInput = z.infer<typeof runRegularizationCleanupSchema>;
 export type UpdateGlobalSettingsInput = z.infer<typeof updateGlobalSettingsSchema>;
 export type UpdateDepartmentSettingsInput = z.infer<typeof updateDepartmentSettingsSchema>;
 export type CreateDepartmentInput = z.infer<typeof createDepartmentSchema>;

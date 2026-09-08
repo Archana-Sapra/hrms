@@ -1,5 +1,5 @@
 import { validateBody, validateQuery } from "../middlewares/zodValidation.middleware.js";
-import { updateGlobalSettingsSchema, updateDepartmentSettingsSchema, createDepartmentSchema, renameDepartmentSchema, assignEmployeeToDepartmentSchema, getEffectiveSettingsQuerySchema } from "../validators/settings.schemas.js";
+import { updateGlobalSettingsSchema, updateDepartmentSettingsSchema, createDepartmentSchema, renameDepartmentSchema, assignEmployeeToDepartmentSchema, getEffectiveSettingsQuerySchema, runRegularizationCleanupSchema } from "../validators/settings.schemas.js";
 import { Router } from "express";
 import {
   getGlobalSettings,
@@ -16,7 +16,8 @@ import {
   assignEmployeeToDepartment,
   getAvailableEmployees,
   rescheduleDailyHrAttendanceReport,
-  testDailyHrAttendanceReport
+  testDailyHrAttendanceReport,
+  runRegularizationCleanup
 } from "../controllers/settings.controllers.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
 
@@ -50,5 +51,8 @@ router.post("/departments/:departmentName/employees", authMiddleware(["admin", "
 // Daily HR Attendance Report routes (HR/Admin only)
 router.post("/daily-hr-attendance-report/reschedule", authMiddleware(["admin", "hr"]), rescheduleDailyHrAttendanceReport);
 router.post("/daily-hr-attendance-report/test", authMiddleware(["admin", "hr"]), testDailyHrAttendanceReport);
+
+// Regularization retention routes (HR/Admin only)
+router.post("/regularization-retention/run-now", authMiddleware(["admin", "hr"]), validateBody(runRegularizationCleanupSchema), runRegularizationCleanup);
 
 export default router;
